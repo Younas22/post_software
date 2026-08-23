@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\BrandController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\ConfigController;
 use App\Http\Controllers\Api\V1\CustomerController;
+use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\EmployeeController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\ProductController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\ReturnController;
 use App\Http\Controllers\Api\V1\SaleController;
 use App\Http\Controllers\Api\V1\SupplierController;
+use App\Http\Controllers\Api\V1\SyncController;
 use App\Support\ApiResponse;
 use Illuminate\Support\Facades\Route;
 
@@ -163,6 +165,30 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::post('cash-sessions/{cashSession}/cash-in', [CashSessionController::class, 'cashIn'])->name('cash-sessions.cash-in');
         Route::post('cash-sessions/{cashSession}/cash-out', [CashSessionController::class, 'cashOut'])->name('cash-sessions.cash-out');
         Route::post('cash-sessions/{cashSession}/close', [CashSessionController::class, 'close'])->name('cash-sessions.close');
+
+        // Devices — register is called by an authenticated user (the admin
+        // setting up a new terminal); current is called by the DEVICE's own
+        // credential afterward (see EnsureDeviceIsActive / Device::class).
+        // Both sit behind auth:sanctum since Sanctum resolves either
+        // tokenable transparently — 'device.active' is what actually
+        // enforces that /current specifically requires a device token.
+        Route::middleware('permission:devices.manage')->post('devices/register', [DeviceController::class, 'register'])->name('devices.register');
+        Route::middleware('device.active')->get('devices/current', [DeviceController::class, 'current'])->name('devices.current');
+
+        // Sync (Electron initial + incremental) — device-authenticated only,
+        // never gated by a user permission: there is no user in this flow.
+        // Every method resolves its business/branch from the device's own
+        // record (see SyncController), so there is nothing here for a
+        // request parameter to spoof.
+        Route::middleware('device.active')->prefix('sync')->name('sync.')->group(function () {
+            Route::get('bootstrap', [SyncController::class, 'bootstrap'])->name('bootstrap');
+            Route::get('categories', [SyncController::class, 'categories'])->name('categories');
+            Route::get('brands', [SyncController::class, 'brands'])->name('brands');
+            Route::get('products', [SyncController::class, 'products'])->name('products');
+            Route::get('customers', [SyncController::class, 'customers'])->name('customers');
+            Route::get('inventory', [SyncController::class, 'inventory'])->name('inventory');
+            Route::post('sales', [SyncController::class, 'sales'])->name('sales');
+        });
 
         // Reports — every method resolves and re-verifies its own tenant
         // scope internally (see ReportController::authorizedBusiness());

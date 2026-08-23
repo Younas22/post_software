@@ -6,11 +6,13 @@ use App\Exceptions\ExcessiveReturnException;
 use App\Exceptions\InsufficientStockException;
 use App\Exceptions\InvalidStateTransitionException;
 use App\Support\IdempotencyConflictException;
+use App\Support\SyncErrorResponse;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
@@ -29,7 +31,35 @@ use Throwable;
  */
 class ApiExceptionRenderer
 {
-    public static function render(Throwable $e): JsonResponse
+    public static function render(Throwable $e, ?Request $request = null): JsonResponse
+    {
+        $response = self::base($e);
+
+        // The offline-transaction sync endpoint additionally needs a
+        // machine-readable retryable/non_retryable/conflict classification
+        // (see SyncErrorResponse) — every other endpoint's envelope is
+        // completely unaffected by this, since the field is only ever
+        // added, never on any other route.
+        if ($request !== null && $request->is('api/v1/sync/sales') && ($type = self::syncErrorType($e)) !== null) {
+            $response->setData(['error_type' => $type] + $response->getData(true));
+        }
+
+        return $response;
+    }
+
+    private static function syncErrorType(Throwable $e): ?string
+    {
+        return match (true) {
+            $e instanceof ValidationException => SyncErrorResponse::NON_RETRYABLE,
+            $e instanceof InsufficientStockException => SyncErrorResponse::RETRYABLE,
+            $e instanceof IdempotencyConflictException => SyncErrorResponse::CONFLICT,
+            $e instanceof AuthorizationException,
+            $e instanceof AuthenticationException => SyncErrorResponse::NON_RETRYABLE,
+            default => null,
+        };
+    }
+
+    private static function base(Throwable $e): JsonResponse
     {
         return match (true) {
             $e instanceof ValidationException => ApiResponse::error(
@@ -72,6 +102,16 @@ class ApiExceptionRenderer
                 $e->getMessage(),
                 null,
                 409,
+            ),
+
+            // A malformed/tampered client input the framework itself won't
+            // catch via FormRequest validation (e.g. an opaque sync cursor
+            // — see SyncCursor::decode()). Treated as a 422, not a 500: it's
+            // bad input, not a server bug.
+            $e instanceof \InvalidArgumentException => ApiResponse::error(
+                $e->getMessage(),
+                null,
+                422,
             ),
 
             // Laravel's own exception handler converts ModelNotFoundException

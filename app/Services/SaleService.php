@@ -5,9 +5,11 @@ namespace App\Services;
 use App\Exceptions\InsufficientStockException;
 use App\Models\Branch;
 use App\Models\Customer;
+use App\Models\Device;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -45,6 +47,8 @@ class SaleService
         array $payments,
         string $clientTransactionId,
         array $requestPayloadForHash,
+        ?Device $device = null,
+        ?Carbon $saleDate = null,
     ): array {
         $business = $branch->business;
 
@@ -55,24 +59,33 @@ class SaleService
             ->get()
             ->keyBy('id');
 
-        // Fast, friendly rejection for the common case; the authoritative,
-        // race-safe check happens under StockService's row lock below.
-        foreach ($items as $item) {
-            $product = $products[$item['product_id']];
-            $available = $this->stock->currentQuantity($branch, $product);
-
-            if ($available < $item['quantity']) {
-                throw new InsufficientStockException($available, $item['quantity']);
-            }
-        }
-
         $result = $this->idempotency->handle(
             business: $business,
             clientTransactionId: $clientTransactionId,
             payload: $requestPayloadForHash,
-            device: null,
-            callback: function ($record) use ($branch, $cashier, $customer, $items, $payments, $products, $clientTransactionId) {
-                $sale = $this->persist($branch, $cashier, $customer, $items, $payments, $products, $clientTransactionId);
+            device: $device,
+            callback: function ($record) use ($branch, $cashier, $customer, $items, $payments, $products, $clientTransactionId, $saleDate) {
+                // Deliberately checked HERE, inside the callback — this only
+                // runs for a genuinely new attempt (a replayed duplicate
+                // short-circuits before ever reaching this closure). Checking
+                // it earlier would wrongly re-evaluate stock against an
+                // IDENTICAL retried payload whose own prior success already
+                // consumed exactly the stock it needed, turning a harmless
+                // replay into a false "insufficient stock" failure. The
+                // authoritative, race-safe check still happens under
+                // StockService's row lock in persist() below regardless —
+                // this is only the fast, friendly rejection for a real new
+                // transaction that's actually short.
+                foreach ($items as $item) {
+                    $product = $products[$item['product_id']];
+                    $available = $this->stock->currentQuantity($branch, $product);
+
+                    if ($available < $item['quantity']) {
+                        throw new InsufficientStockException($available, $item['quantity']);
+                    }
+                }
+
+                $sale = $this->persist($branch, $cashier, $customer, $items, $payments, $products, $clientTransactionId, $saleDate);
                 $record->subject()->associate($sale);
                 $record->save();
 
@@ -96,8 +109,9 @@ class SaleService
         array $payments,
         $products,
         string $clientTransactionId,
+        ?Carbon $saleDate = null,
     ): Sale {
-        return DB::transaction(function () use ($branch, $cashier, $customer, $items, $payments, $products, $clientTransactionId) {
+        return DB::transaction(function () use ($branch, $cashier, $customer, $items, $payments, $products, $clientTransactionId, $saleDate) {
             $lines = $this->priceLines($items, $products);
 
             $sale = new Sale();
@@ -112,7 +126,10 @@ class SaleService
             $sale->tax = $lines['tax'];
             $sale->total = $lines['total'];
             $sale->status = 'completed';
-            $sale->sale_date = now();
+            // An offline (Electron) sale carries the moment it actually
+            // happened, validated <= now() by the request layer; a live POS
+            // sale has none, so it's simply "now".
+            $sale->sale_date = $saleDate ?? now();
             $sale->save();
 
             foreach ($lines['items'] as $line) {

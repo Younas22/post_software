@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureDeviceIsActive;
 use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsureSubscriptionActive;
 use App\Http\Middleware\EnsureUserIsClientUser;
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'client-user' => EnsureUserIsClientUser::class,
             'permission' => EnsurePermission::class,
             'subscription.active' => EnsureSubscriptionActive::class,
+            'device.active' => EnsureDeviceIsActive::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -37,6 +39,6 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
-            return ApiExceptionRenderer::render($e);
+            return ApiExceptionRenderer::render($e, $request);
         });
     })->create();

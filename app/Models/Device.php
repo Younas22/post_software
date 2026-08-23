@@ -6,23 +6,29 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Sanctum\HasApiTokens;
 
 /**
- * Represents a POS device (future Electron desktop app, or a mobile/web
- * client) registered under a client's subscription.
+ * Represents a POS device (Electron desktop app, or a mobile/web client)
+ * registered under a client's subscription.
  *
- * Security note (device registration is not built yet — this documents the
- * architecture it must slot into): `device_identifier` is stored as an
- * opaque unique string, but nothing today issues or verifies it. When a real
- * registration endpoint is built, the identifier must be generated
- * server-side (or verified via a signed activation token/challenge) rather
- * than accepted verbatim from the client — a caller must never be able to
- * claim an arbitrary identifier and have it trusted as proof of that
- * physical device's identity.
+ * `HasApiTokens` makes Device a second, independent Sanctum "tokenable" —
+ * personal_access_tokens is already polymorphic (tokenable_type/id), so a
+ * device credential issued by DeviceController::register() rides the exact
+ * same `auth:sanctum` guard a User token does, but resolves `$request->user()`
+ * to a Device instance instead. The two are deliberately separate identities
+ * that coexist rather than merge: a cashier's own user token keeps working
+ * unchanged for every existing endpoint, and a device token is only ever
+ * meaningful on device-scoped routes (see the `device.active` middleware).
+ *
+ * `device_identifier` is always server-generated at registration
+ * (App\Http\Controllers\Api\V1\DeviceController::register()) — a caller
+ * supplies a branch and a human label, never the identifier itself, so
+ * client-claimed device identity is never trusted as proof of anything.
  */
 class Device extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasApiTokens, HasFactory, SoftDeletes;
 
     /**
      * @var list<string>
