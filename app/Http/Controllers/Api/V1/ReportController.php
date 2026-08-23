@@ -94,20 +94,30 @@ class ReportController extends Controller
     {
         $business = $this->authorizedBusiness($request);
 
-        $query = Inventory::query()
-            ->where('inventories.business_id', $business->id)
-            ->join('products', 'products.id', '=', 'inventories.product_id')
-            ->select('inventories.*');
-        $this->scopeToActorBranch($query, $request, 'inventories.branch_id');
+        // A shared, unselected base — each of the two queries below applies
+        // its own select() (Laravel's select() replaces the column list;
+        // it's the earlier selectRaw()-onto-a-select('inventories.*')
+        // combination that silently mixed a raw column with aggregates,
+        // which SQLite's lenient GROUP BY accepted but MySQL's strict mode
+        // correctly rejects with error 1140 — caught via live testing
+        // against the real MySQL database, not the (SQLite) test suite).
+        $base = function () use ($business, $request) {
+            $query = Inventory::query()
+                ->where('inventories.business_id', $business->id)
+                ->join('products', 'products.id', '=', 'inventories.product_id');
+            $this->scopeToActorBranch($query, $request, 'inventories.branch_id');
 
-        if ($request->filled('branch_id')) {
-            $query->where('inventories.branch_id', $request->integer('branch_id'));
-        }
-        if ($request->filled('category_id')) {
-            $query->where('products.category_id', $request->integer('category_id'));
-        }
+            if ($request->filled('branch_id')) {
+                $query->where('inventories.branch_id', $request->integer('branch_id'));
+            }
+            if ($request->filled('category_id')) {
+                $query->where('products.category_id', $request->integer('category_id'));
+            }
 
-        $summary = (clone $query)->selectRaw(
+            return $query;
+        };
+
+        $summary = $base()->selectRaw(
             'COALESCE(SUM(inventories.quantity),0) as total_units, '.
             'COALESCE(SUM(inventories.quantity * products.purchase_price),0) as stock_value, '.
             'SUM(CASE WHEN inventories.quantity <= products.minimum_stock THEN 1 ELSE 0 END) as low_stock_count, '.
@@ -115,7 +125,8 @@ class ReportController extends Controller
             'COUNT(DISTINCT inventories.product_id) as product_count'
         )->first();
 
-        $rows = $query->with(['product:id,name,sku,minimum_stock,category_id', 'branch:id,name'])
+        $rows = $base()->select('inventories.*')
+            ->with(['product:id,name,sku,minimum_stock,category_id', 'branch:id,name'])
             ->paginate((int) $request->integer('per_page', 15))
             ->withQueryString();
 
