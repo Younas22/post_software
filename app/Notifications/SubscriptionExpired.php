@@ -1,0 +1,38 @@
+<?php
+
+namespace App\Notifications;
+
+use App\Models\Subscription;
+use Illuminate\Bus\Queueable;
+use Illuminate\Notifications\Notification;
+
+class SubscriptionExpired extends Notification
+{
+    use Queueable;
+
+    public function __construct(private readonly Subscription $subscription)
+    {
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function via(object $notifiable): array
+    {
+        return ['database'];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(object $notifiable): array
+    {
+        $packageName = $this->subscription->package?->name ?? 'your plan';
+
+        return [
+            'type' => 'subscription.expired',
+            'subscription_id' => $this->subscription->id,
+            'message' => "Your subscription ({$packageName}) has expired. Renew to keep access.",
+        ];
+    }
+}

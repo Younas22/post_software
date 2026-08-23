@@ -1,0 +1,77 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+/* Explicit .dark class toggle (persisted via localStorage) rather than
+   relying solely on prefers-color-scheme, so the theme switcher works. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+/* ============================================================
+   Admin layout: sidebar drawer (mobile/tablet) + collapse (desktop)
+   ------------------------------------------------------------
+   Both states are toggled at runtime via a class on <html> (see
+   resources/js/app.js). Plain CSS + ID selectors are used here instead of
+   Tailwind utilities because ID specificity reliably wins over utility
+   classes regardless of source order — a same-breakpoint utility-vs-utility
+   conflict (e.g. two classes both setting `transform`) is NOT guaranteed to
+   resolve predictably in Tailwind's generated stylesheet.
+   Below lg (1024px): sidebar is off-canvas, opened via the mobile drawer.
+   At lg and up: sidebar is static and can be collapsed to an icon rail.
+   ============================================================ */
+#admin-sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 50;
+    width: 16rem;
+    transform: translateX(-100%);
+    transition: transform 200ms ease, width 200ms ease;
+}
+
+html.admin-drawer-open #admin-sidebar {
+    transform: translateX(0);
+}
+
+#admin-sidebar-backdrop {
+    display: none;
+}
+
+html.admin-drawer-open #admin-sidebar-backdrop {
+    display: block;
+}
+
+@media (max-width: 1023px) {
+    html.admin-drawer-open body {
+        overflow: hidden;
+    }
+}
+
+@media (min-width: 1024px) {
+    #admin-sidebar {
+        position: static;
+        transform: none;
+    }
+
+    #admin-sidebar-backdrop {
+        display: none !important;
+    }
+
+    html.admin-sidebar-collapsed #admin-sidebar {
+        width: 5rem;
+    }
+
+    html.admin-sidebar-collapsed [data-sidebar-label],
+    html.admin-sidebar-collapsed [data-sidebar-group-label],
+    html.admin-sidebar-collapsed #admin-sidebar-brand-text {
+        display: none;
+    }
+}
