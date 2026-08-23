@@ -1,19 +1,27 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AccountController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\BranchController;
 use App\Http\Controllers\Api\V1\BrandController;
+use App\Http\Controllers\Api\V1\BusinessController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\ConfigController;
 use App\Http\Controllers\Api\V1\CustomerController;
+use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\EmployeeController;
+use App\Http\Controllers\Api\V1\ExpenseController;
 use App\Http\Controllers\Api\V1\InventoryController;
+use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\PaymentMethodController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\CashSessionController;
 use App\Http\Controllers\Api\V1\PurchaseController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\ReturnController;
 use App\Http\Controllers\Api\V1\SaleController;
+use App\Http\Controllers\Api\V1\SubscriptionController;
 use App\Http\Controllers\Api\V1\SupplierController;
 use App\Http\Controllers\Api\V1\SyncController;
 use App\Support\ApiResponse;
@@ -39,10 +47,47 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         ->middleware('throttle:10,1')
         ->name('auth.login');
 
+    // Password reset — JSON wrapper around Laravel's own Password broker
+    // (see AuthController), previously only reachable via session/Blade
+    // forms (docs/LARAVEL_API_DISCOVERY.md §21).
+    Route::middleware('throttle:10,1')->group(function () {
+        Route::post('auth/forgot-password', [AuthController::class, 'forgotPassword'])->name('auth.forgot-password');
+        Route::post('auth/reset-password', [AuthController::class, 'resetPassword'])->name('auth.reset-password');
+    });
+
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
         Route::get('user', [AuthController::class, 'user'])->name('user');
         Route::get('config', ConfigController::class)->name('config');
+        Route::get('dashboard', DashboardController::class)->name('dashboard');
+        Route::get('subscription', [SubscriptionController::class, 'show'])->name('subscription');
+        Route::get('payment-methods', [PaymentMethodController::class, 'index'])->name('payment-methods.index');
+
+        // Self-service account actions for the currently authenticated user.
+        Route::put('user/password', [AccountController::class, 'updatePassword'])->name('user.password.update');
+        Route::put('user/profile', [AccountController::class, 'updateProfile'])->name('user.profile.update');
+
+        // Notifications — reads back what the scheduled subscription/device
+        // checks already write via the Notifiable trait on User.
+        Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::patch('notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+        Route::patch('notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+
+        // "My business" profile — previously Admin-Blade-only.
+        Route::get('business', [BusinessController::class, 'show'])->name('business.show');
+        Route::put('business', [BusinessController::class, 'update'])->name('business.update');
+        Route::put('business/settings', [BusinessController::class, 'updateSettings'])->name('business.settings.update');
+
+        // Branches — previously Admin-Blade-only; enforces max_branches via
+        // the same PackageLimitService the Admin panel already uses.
+        Route::middleware('permission:businesses.view')->get('branches', [BranchController::class, 'index'])->name('branches.index');
+        Route::middleware('permission:businesses.update')->group(function () {
+            Route::post('branches', [BranchController::class, 'store'])->name('branches.store');
+            Route::match(['put', 'patch'], 'branches/{branch}', [BranchController::class, 'update'])->name('branches.update');
+            Route::patch('branches/{branch}/activate', [BranchController::class, 'activate'])->name('branches.activate');
+            Route::patch('branches/{branch}/deactivate', [BranchController::class, 'deactivate'])->name('branches.deactivate');
+        });
+        Route::get('branches/{branch}', [BranchController::class, 'show'])->name('branches.show');
 
         // Employees (staff) — a Client Owner/Business Admin manages their
         // own team; a Super Admin may act on behalf of any client (see
@@ -97,6 +142,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::middleware('permission:inventory.view')->group(function () {
             Route::get('inventory', [InventoryController::class, 'index'])->name('inventory.index');
             Route::get('inventory/low-stock', [InventoryController::class, 'lowStock'])->name('inventory.low-stock');
+            Route::get('stock-movements', [InventoryController::class, 'globalMovements'])->name('inventory.stock-movements');
             Route::get('products/{product}/movements', [InventoryController::class, 'movements'])->name('inventory.movements');
         });
         Route::middleware('permission:inventory.adjust')->post('inventory/adjust', [InventoryController::class, 'adjust'])->name('inventory.adjust');
@@ -130,6 +176,17 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::patch('purchases/{purchase}/receive', [PurchaseController::class, 'receive'])->name('purchases.receive');
         });
         Route::middleware('permission:purchases.cancel')->patch('purchases/{purchase}/cancel', [PurchaseController::class, 'cancel'])->name('purchases.cancel');
+
+        // Expenses — branch-scoped like Purchase; previously absent
+        // entirely (no model/table/route — see
+        // docs/LARAVEL_API_DISCOVERY.md §21).
+        Route::middleware('permission:expenses.view')->group(function () {
+            Route::get('expenses', [ExpenseController::class, 'index'])->name('expenses.index');
+            Route::get('expenses/{expense}', [ExpenseController::class, 'show'])->name('expenses.show');
+        });
+        Route::middleware('permission:expenses.create')->post('expenses', [ExpenseController::class, 'store'])->name('expenses.store');
+        Route::middleware('permission:expenses.update')->match(['put', 'patch'], 'expenses/{expense}', [ExpenseController::class, 'update'])->name('expenses.update');
+        Route::middleware('permission:expenses.delete')->delete('expenses/{expense}', [ExpenseController::class, 'destroy'])->name('expenses.destroy');
 
         // Sales (POS) — see SaleService for the full "CRITICAL FLOW" this
         // sits behind (permission -> subscription -> feature -> stock ->

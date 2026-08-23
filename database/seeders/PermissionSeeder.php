@@ -62,6 +62,10 @@ class PermissionSeeder extends Seeder
             'cash_sessions.operate',
             'cash_sessions.manage',
             'reports.view',
+            'expenses.view',
+            'expenses.create',
+            'expenses.update',
+            'expenses.delete',
         ];
 
         foreach ($slugs as $slug) {

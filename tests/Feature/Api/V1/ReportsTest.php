@@ -246,11 +246,47 @@ class ReportsTest extends TestCase
         $this->assertEquals(45, $response->json('data.estimated_gross_profit'));
     }
 
-    public function test_expenses_report_reports_not_implemented_rather_than_fabricating_data(): void
+    public function test_expenses_report_returns_real_totals_now_that_the_expense_module_exists(): void
     {
-        [, , $owner] = $this->reportableSetup();
+        [$business, $branch, $owner] = $this->reportableSetup();
 
-        $this->actingAsApi($owner)->getJson('/api/v1/reports/expenses')->assertStatus(501);
+        \App\Models\Expense::query()->create([
+            'business_id' => $business->id,
+            'branch_id' => $branch->id,
+            'user_id' => $owner->id,
+            'title' => 'Electricity bill',
+            'category' => 'utilities',
+            'amount' => 25,
+            'expense_date' => now()->toDateString(),
+        ]);
+
+        $response = $this->actingAsApi($owner)->getJson('/api/v1/reports/expenses');
+
+        $response->assertOk();
+        $this->assertEquals(25, $response->json('data.summary.total'));
+        $this->assertEquals(1, $response->json('data.summary.expense_count'));
+        $this->assertEquals('utilities', $response->json('data.by_category.0.category'));
+    }
+
+    public function test_expenses_report_is_tenant_scoped(): void
+    {
+        [$business, $branch, $owner] = $this->reportableSetup();
+        [$otherBusiness, $otherBranch, $otherOwner] = $this->reportableSetup();
+
+        \App\Models\Expense::query()->create([
+            'business_id' => $otherBusiness->id,
+            'branch_id' => $otherBranch->id,
+            'user_id' => $otherOwner->id,
+            'title' => 'Other business rent',
+            'category' => 'rent',
+            'amount' => 999,
+            'expense_date' => now()->toDateString(),
+        ]);
+
+        $response = $this->actingAsApi($owner)->getJson('/api/v1/reports/expenses');
+
+        $response->assertOk();
+        $this->assertEquals(0, $response->json('data.summary.total'));
     }
 
     public function test_unauthenticated_requests_are_rejected(): void

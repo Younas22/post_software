@@ -6,10 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Support\ApiResponse;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -66,6 +70,55 @@ class AuthController extends Controller
     public function user(Request $request): JsonResponse
     {
         return ApiResponse::success(['user' => $this->userPayload($request->user())], 'User retrieved successfully.');
+    }
+
+    /**
+     * JSON wrapper around Laravel's own Password broker — identical
+     * verification/hashing/expiry/single-use guarantees as the session-based
+     * Blade flow (Auth\PasswordResetLinkController), just returning
+     * ApiResponse instead of a redirect. Deliberately does not reveal
+     * whether the email exists: any $status other than RESET_LINK_SENT is
+     * reported as a generic validation error the same way the Blade
+     * controller does via trans($status).
+     */
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $request->validate(['email' => ['required', 'email']]);
+
+        $status = Password::sendResetLink($request->only('email'));
+
+        if ($status !== Password::RESET_LINK_SENT) {
+            throw ValidationException::withMessages(['email' => [trans($status)]]);
+        }
+
+        return ApiResponse::success(null, trans($status));
+    }
+
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'token' => ['required'],
+            'email' => ['required', 'email'],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ]);
+
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function (User $user) use ($request) {
+                $user->forceFill([
+                    'password' => Hash::make($request->string('password')),
+                    'remember_token' => Str::random(60),
+                ])->save();
+
+                event(new PasswordReset($user));
+            }
+        );
+
+        if ($status !== Password::PASSWORD_RESET) {
+            throw ValidationException::withMessages(['email' => [trans($status)]]);
+        }
+
+        return ApiResponse::success(null, trans($status));
     }
 
     /**

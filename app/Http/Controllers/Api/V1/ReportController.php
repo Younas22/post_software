@@ -221,13 +221,37 @@ class ReportController extends Controller
 
     public function expenses(Request $request): JsonResponse
     {
-        $this->authorizedBusiness($request);
+        $business = $this->authorizedBusiness($request);
 
-        return ApiResponse::error(
-            'Expense tracking is not yet implemented on this platform — this report has no data source.',
-            null,
-            501,
-        );
+        $query = \App\Models\Expense::query()->where('business_id', $business->id);
+        $this->scopeToActorBranch($query, $request);
+        $this->applyDateRange($query, $request, 'expense_date');
+
+        if ($request->filled('branch_id')) {
+            $query->where('branch_id', $request->integer('branch_id'));
+        }
+        if ($request->filled('category')) {
+            $query->where('category', $request->string('category'));
+        }
+
+        $summary = (clone $query)->selectRaw('COUNT(*) as expense_count, COALESCE(SUM(amount),0) as total')->first();
+
+        $byCategory = (clone $query)
+            ->selectRaw('category, COUNT(*) as expense_count, COALESCE(SUM(amount),0) as total')
+            ->groupBy('category')
+            ->orderByDesc('total')
+            ->get();
+
+        $expenses = $query->with(['branch:id,name', 'user:id,name'])
+            ->latest('expense_date')
+            ->paginate((int) $request->integer('per_page', 15))
+            ->withQueryString();
+
+        return ApiResponse::success([
+            'summary' => $summary,
+            'by_category' => $byCategory,
+            'expenses' => $expenses,
+        ], 'Expenses report generated.');
     }
 
     /**

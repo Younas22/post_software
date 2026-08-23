@@ -87,6 +87,41 @@ class InventoryController extends Controller
         return ApiResponse::success($inventory->fresh(['product', 'branch']), 'Stock adjusted successfully.');
     }
 
+    /**
+     * Cross-product stock-movement feed — previously only reachable one
+     * product at a time via movements() below (see
+     * docs/LARAVEL_API_DISCOVERY.md §21). Same StockMovement ledger, just
+     * scoped by tenant/branch instead of a single product.
+     */
+    public function globalMovements(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Inventory::class);
+
+        $actor = $request->user();
+
+        $movements = StockMovement::query()
+            ->with(['product:id,name,sku', 'branch:id,name', 'user:id,name'])
+            ->whereHas('branch', function ($query) use ($actor) {
+                $query->whereHas('business', fn ($q) => $q->where('client_id', $actor->client_id));
+                if ($actor->business_id !== null) {
+                    $query->where('business_id', $actor->business_id);
+                }
+                if ($actor->branch_id !== null) {
+                    $query->where('id', $actor->branch_id);
+                }
+            })
+            ->when($request->filled('branch_id'), fn ($q) => $q->where('branch_id', $request->integer('branch_id')))
+            ->when($request->filled('product_id'), fn ($q) => $q->where('product_id', $request->integer('product_id')))
+            ->when($request->filled('type'), fn ($q) => $q->where('type', $request->string('type')))
+            ->when($request->filled('date_from'), fn ($q) => $q->whereDate('created_at', '>=', $request->string('date_from')))
+            ->when($request->filled('date_to'), fn ($q) => $q->whereDate('created_at', '<=', $request->string('date_to')))
+            ->latest()
+            ->paginate((int) $request->integer('per_page', 20))
+            ->withQueryString();
+
+        return ApiResponse::collection($movements, 'Stock movements retrieved successfully.');
+    }
+
     public function movements(Request $request, Product $product): JsonResponse
     {
         $this->authorize('view', $product);

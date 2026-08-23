@@ -38,6 +38,7 @@ class RolePermissionSeeder extends Seeder
                 'returns.view', 'returns.process',
                 'cash_sessions.view', 'cash_sessions.operate', 'cash_sessions.manage',
                 'reports.view',
+                'expenses.view', 'expenses.create', 'expenses.update', 'expenses.delete',
             ],
             'client-owner' => [
                 'dashboard.view',
@@ -56,6 +57,7 @@ class RolePermissionSeeder extends Seeder
                 'returns.view', 'returns.process',
                 'cash_sessions.view', 'cash_sessions.operate', 'cash_sessions.manage',
                 'reports.view',
+                'expenses.view', 'expenses.create', 'expenses.update', 'expenses.delete',
             ],
             'business-admin' => [
                 'dashboard.view',
@@ -72,6 +74,7 @@ class RolePermissionSeeder extends Seeder
                 'returns.view', 'returns.process',
                 'cash_sessions.view', 'cash_sessions.operate', 'cash_sessions.manage',
                 'reports.view',
+                'expenses.view', 'expenses.create', 'expenses.update', 'expenses.delete',
             ],
             'manager' => [
                 'dashboard.view',
@@ -88,6 +91,7 @@ class RolePermissionSeeder extends Seeder
                 'returns.view', 'returns.process',
                 'cash_sessions.view', 'cash_sessions.operate', 'cash_sessions.manage',
                 'reports.view',
+                'expenses.view', 'expenses.create', 'expenses.update',
             ],
             'cashier' => [
                 'dashboard.view',

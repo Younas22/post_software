@@ -15,6 +15,11 @@ class BranchPolicy
 {
     use ScopesToBranch;
 
+    public function viewAny(User $user): bool
+    {
+        return $user->is_super_admin || $user->hasPermission('businesses.view');
+    }
+
     public function view(User $user, Branch $branch): bool
     {
         return $user->is_super_admin
