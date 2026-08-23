@@ -88,6 +88,14 @@ class Sale extends Model
         return $this->hasMany(Payment::class);
     }
 
+    /**
+     * @return HasMany<SaleReturn, $this>
+     */
+    public function returns(): HasMany
+    {
+        return $this->hasMany(SaleReturn::class);
+    }
+
     public function isCompleted(): bool
     {
         return $this->status === 'completed';

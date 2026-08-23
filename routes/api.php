@@ -8,7 +8,11 @@ use App\Http\Controllers\Api\V1\CustomerController;
 use App\Http\Controllers\Api\V1\EmployeeController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\ProductController;
+use App\Http\Controllers\Api\V1\CashSessionController;
 use App\Http\Controllers\Api\V1\PurchaseController;
+use App\Http\Controllers\Api\V1\ReportController;
+use App\Http\Controllers\Api\V1\ReturnController;
+use App\Http\Controllers\Api\V1\SaleController;
 use App\Http\Controllers\Api\V1\SupplierController;
 use App\Support\ApiResponse;
 use Illuminate\Support\Facades\Route;
@@ -124,5 +128,55 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::patch('purchases/{purchase}/receive', [PurchaseController::class, 'receive'])->name('purchases.receive');
         });
         Route::middleware('permission:purchases.cancel')->patch('purchases/{purchase}/cancel', [PurchaseController::class, 'cancel'])->name('purchases.cancel');
+
+        // Sales (POS) — see SaleService for the full "CRITICAL FLOW" this
+        // sits behind (permission -> subscription -> feature -> stock ->
+        // authoritative pricing -> idempotency -> atomic persistence).
+        Route::middleware('permission:sales.view')->group(function () {
+            Route::get('sales', [SaleController::class, 'index'])->name('sales.index');
+            Route::get('sales/{sale}', [SaleController::class, 'show'])->name('sales.show');
+            Route::get('sales/{sale}/receipt', [SaleController::class, 'receipt'])->name('sales.receipt');
+        });
+        Route::middleware('permission:sales.create')->post('sales', [SaleController::class, 'store'])->name('sales.store');
+
+        // Returns — always created against a specific sale
+        // (POST sales/{sale}/returns), never as a bare top-level resource.
+        Route::middleware('permission:returns.view')->group(function () {
+            Route::get('returns', [ReturnController::class, 'index'])->name('returns.index');
+            Route::get('returns/{return}', [ReturnController::class, 'show'])->name('returns.show');
+        });
+        Route::middleware('permission:returns.process')->post('sales/{sale}/returns', [ReturnController::class, 'store'])->name('returns.store');
+
+        // Cash sessions — 'current'/'open' are static and registered before
+        // the '{cashSession}' wildcard group for the same reason every
+        // other 'create'-vs-'{id}' pair in this file is ordered that way.
+        Route::middleware('permission:cash_sessions.view')->get('cash-sessions', [CashSessionController::class, 'index'])->name('cash-sessions.index');
+        // No permission:* middleware below: CashSessionPolicy's own view()/
+        // open()/operate() abilities already check the right permission per
+        // action (operate OR manage OR simply owning the session) — a single
+        // route-level permission gate would wrongly block one of those valid
+        // paths, so authorization is left entirely to the controller's
+        // $this->authorize() calls here.
+        Route::get('cash-sessions/current', [CashSessionController::class, 'current'])->name('cash-sessions.current');
+        Route::post('cash-sessions/open', [CashSessionController::class, 'open'])->name('cash-sessions.open');
+        Route::get('cash-sessions/{cashSession}', [CashSessionController::class, 'show'])->name('cash-sessions.show');
+        Route::post('cash-sessions/{cashSession}/cash-in', [CashSessionController::class, 'cashIn'])->name('cash-sessions.cash-in');
+        Route::post('cash-sessions/{cashSession}/cash-out', [CashSessionController::class, 'cashOut'])->name('cash-sessions.cash-out');
+        Route::post('cash-sessions/{cashSession}/close', [CashSessionController::class, 'close'])->name('cash-sessions.close');
+
+        // Reports — every method resolves and re-verifies its own tenant
+        // scope internally (see ReportController::authorizedBusiness());
+        // there is deliberately no single blanket permission:* middleware
+        // here since access also depends on subscription + feature state,
+        // which a route middleware can't express.
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('sales', [ReportController::class, 'sales'])->name('sales');
+            Route::get('purchases', [ReportController::class, 'purchases'])->name('purchases');
+            Route::get('expenses', [ReportController::class, 'expenses'])->name('expenses');
+            Route::get('inventory', [ReportController::class, 'inventory'])->name('inventory');
+            Route::get('products', [ReportController::class, 'products'])->name('products');
+            Route::get('customers', [ReportController::class, 'customers'])->name('customers');
+            Route::get('profit', [ReportController::class, 'profit'])->name('profit');
+        });
     });
 });

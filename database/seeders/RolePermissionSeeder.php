@@ -34,6 +34,10 @@ class RolePermissionSeeder extends Seeder
                 'customers.view', 'customers.create', 'customers.update', 'customers.delete',
                 'suppliers.view', 'suppliers.create', 'suppliers.update', 'suppliers.delete',
                 'purchases.view', 'purchases.create', 'purchases.update', 'purchases.cancel',
+                'sales.view', 'sales.create',
+                'returns.view', 'returns.process',
+                'cash_sessions.view', 'cash_sessions.operate', 'cash_sessions.manage',
+                'reports.view',
             ],
             'client-owner' => [
                 'dashboard.view',
@@ -48,6 +52,10 @@ class RolePermissionSeeder extends Seeder
                 'customers.view', 'customers.create', 'customers.update', 'customers.delete',
                 'suppliers.view', 'suppliers.create', 'suppliers.update', 'suppliers.delete',
                 'purchases.view', 'purchases.create', 'purchases.update', 'purchases.cancel',
+                'sales.view', 'sales.create',
+                'returns.view', 'returns.process',
+                'cash_sessions.view', 'cash_sessions.operate', 'cash_sessions.manage',
+                'reports.view',
             ],
             'business-admin' => [
                 'dashboard.view',
@@ -60,6 +68,10 @@ class RolePermissionSeeder extends Seeder
                 'customers.view', 'customers.create', 'customers.update', 'customers.delete',
                 'suppliers.view', 'suppliers.create', 'suppliers.update', 'suppliers.delete',
                 'purchases.view', 'purchases.create', 'purchases.update', 'purchases.cancel',
+                'sales.view', 'sales.create',
+                'returns.view', 'returns.process',
+                'cash_sessions.view', 'cash_sessions.operate', 'cash_sessions.manage',
+                'reports.view',
             ],
             'manager' => [
                 'dashboard.view',
@@ -72,6 +84,10 @@ class RolePermissionSeeder extends Seeder
                 'customers.view', 'customers.create', 'customers.update',
                 'suppliers.view', 'suppliers.create', 'suppliers.update',
                 'purchases.view', 'purchases.create', 'purchases.update',
+                'sales.view', 'sales.create',
+                'returns.view', 'returns.process',
+                'cash_sessions.view', 'cash_sessions.operate', 'cash_sessions.manage',
+                'reports.view',
             ],
             'cashier' => [
                 'dashboard.view',
@@ -79,6 +95,9 @@ class RolePermissionSeeder extends Seeder
                 'products.view',
                 'inventory.view',
                 'customers.view', 'customers.create',
+                'sales.view', 'sales.create',
+                'returns.view', 'returns.process',
+                'cash_sessions.operate',
             ],
         ];
 

@@ -54,6 +54,14 @@ class PermissionSeeder extends Seeder
             'purchases.create',
             'purchases.update',
             'purchases.cancel',
+            'sales.view',
+            'sales.create',
+            'returns.view',
+            'returns.process',
+            'cash_sessions.view',
+            'cash_sessions.operate',
+            'cash_sessions.manage',
+            'reports.view',
         ];
 
         foreach ($slugs as $slug) {

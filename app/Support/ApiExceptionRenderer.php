@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Exceptions\ExcessiveReturnException;
 use App\Exceptions\InsufficientStockException;
 use App\Exceptions\InvalidStateTransitionException;
 use App\Support\IdempotencyConflictException;
@@ -62,6 +63,12 @@ class ApiExceptionRenderer
             ),
 
             $e instanceof InvalidStateTransitionException => ApiResponse::error(
+                $e->getMessage(),
+                null,
+                409,
+            ),
+
+            $e instanceof ExcessiveReturnException => ApiResponse::error(
                 $e->getMessage(),
                 null,
                 409,

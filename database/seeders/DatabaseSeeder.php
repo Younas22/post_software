@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             FeatureSeeder::class,
             PackageSeeder::class,
+            PaymentMethodSeeder::class,
             SuperAdminSeeder::class,
             DemoClientSeeder::class,
         ]);
