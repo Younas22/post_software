@@ -110,7 +110,9 @@ class ReportController extends Controller
         $summary = (clone $query)->selectRaw(
             'COALESCE(SUM(inventories.quantity),0) as total_units, '.
             'COALESCE(SUM(inventories.quantity * products.purchase_price),0) as stock_value, '.
-            'SUM(CASE WHEN inventories.quantity <= products.minimum_stock THEN 1 ELSE 0 END) as low_stock_count'
+            'SUM(CASE WHEN inventories.quantity <= products.minimum_stock THEN 1 ELSE 0 END) as low_stock_count, '.
+            'SUM(CASE WHEN inventories.quantity <= 0 THEN 1 ELSE 0 END) as out_of_stock_count, '.
+            'COUNT(DISTINCT inventories.product_id) as product_count'
         )->first();
 
         $rows = $query->with(['product:id,name,sku,minimum_stock,category_id', 'branch:id,name'])
