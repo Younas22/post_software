@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Auth\Middleware\RedirectIfAuthenticated;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -39,6 +40,17 @@ class AppServiceProvider extends ServiceProvider
         // during validation, an external dependency this app shouldn't
         // require to function (including offline dev/CI).
         Password::defaults(fn () => Password::min(10)->mixedCase()->numbers()->symbols());
+
+        // The password-reset email must link to the Next.js Web POS's own
+        // /reset-password page (which posts to POST /api/v1/auth/reset-password),
+        // not this backend's session/Blade route — the token/hashing/expiry
+        // guarantees are unchanged, only the destination URL differs. See
+        // config('app.frontend_url') and AuthController::resetPassword().
+        ResetPassword::createUrlUsing(function ($notifiable, string $token) {
+            $email = urlencode($notifiable->getEmailForPasswordReset());
+
+            return rtrim(config('app.frontend_url'), '/')."/reset-password?token={$token}&email={$email}";
+        });
 
         // Outside local/debug environments, Scramble's RestrictedDocsAccess
         // middleware checks this gate before serving /docs/api — only a

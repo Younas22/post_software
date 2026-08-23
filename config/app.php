@@ -56,6 +56,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Frontend (Web POS) URL
+    |--------------------------------------------------------------------------
+    |
+    | The Next.js Web POS is a separate app consuming this API over
+    | /api/v1/*. Links this backend generates that a *browser* should follow
+    | (password-reset emails today) must point at the frontend, not this
+    | Laravel app's own routes — see AppServiceProvider's
+    | ResetPassword::createUrlUsing() override.
+    |
+    */
+
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

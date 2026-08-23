@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Models\Branch;
 use App\Models\Brand;
 use App\Models\Business;
 use App\Models\Category;
@@ -9,6 +10,7 @@ use App\Models\Client;
 use App\Models\Product;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\StockService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -298,6 +300,39 @@ class ProductCatalogTest extends TestCase
         $response->assertOk();
         $this->assertCount(1, $response->json('data'));
         $this->assertSame('Findable Widget', $response->json('data')[0]['name']);
+    }
+
+    public function test_products_list_includes_a_stock_total_summed_across_branches_for_an_unpinned_actor(): void
+    {
+        [, $business, $owner] = $this->ownerSetup();
+        $branchA = Branch::factory()->create(['business_id' => $business->id]);
+        $branchB = Branch::factory()->create(['business_id' => $business->id]);
+        $product = $this->product($business, ['sku' => 'STOCK-1', 'barcode' => 'STOCKBAR-1']);
+        app(StockService::class)->adjust($branchA, $product, 5, 'adjustment');
+        app(StockService::class)->adjust($branchB, $product, 3, 'adjustment');
+
+        $response = $this->actingAsApi($owner)->getJson('/api/v1/products');
+
+        $response->assertOk();
+        $this->assertEquals(8, $response->json('data.0.stock'));
+    }
+
+    public function test_products_list_stock_is_scoped_to_only_the_actors_own_branch_when_pinned(): void
+    {
+        [$client, $business, ] = $this->ownerSetup();
+        $branchA = Branch::factory()->create(['business_id' => $business->id]);
+        $branchB = Branch::factory()->create(['business_id' => $business->id]);
+        $product = $this->product($business, ['sku' => 'STOCK-2', 'barcode' => 'STOCKBAR-2']);
+        app(StockService::class)->adjust($branchA, $product, 5, 'adjustment');
+        app(StockService::class)->adjust($branchB, $product, 3, 'adjustment');
+
+        $cashier = User::factory()->create(['client_id' => $client->id, 'business_id' => $business->id, 'branch_id' => $branchA->id]);
+        $cashier->roles()->attach(Role::query()->where('slug', 'cashier')->firstOrFail());
+
+        $response = $this->actingAsApi($cashier)->getJson('/api/v1/products');
+
+        $response->assertOk();
+        $this->assertEquals(5, $response->json('data.0.stock'));
     }
 
     public function test_products_list_supports_category_and_status_filters_and_pagination(): void

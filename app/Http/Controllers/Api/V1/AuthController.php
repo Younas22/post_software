@@ -126,10 +126,18 @@ class AuthController extends Controller
      * dump — so adding a sensitive column to `users` later can't silently
      * leak it through this endpoint.
      *
+     * `roles`/`permissions` are included so the frontend can gate
+     * navigation/UI without a second round-trip — this is display-only
+     * convenience, never the authorization boundary: Laravel re-checks
+     * every permission server-side on every request regardless of what a
+     * client caches from here.
+     *
      * @return array<string, mixed>
      */
     private function userPayload(User $user): array
     {
+        $user->loadMissing('roles.permissions');
+
         return [
             'id' => $user->id,
             'name' => $user->name,
@@ -139,6 +147,8 @@ class AuthController extends Controller
             'client_id' => $user->client_id,
             'business_id' => $user->business_id,
             'branch_id' => $user->branch_id,
+            'roles' => $user->roles->pluck('slug')->values(),
+            'permissions' => $user->roles->pluck('permissions')->flatten()->pluck('slug')->unique()->values(),
         ];
     }
 }

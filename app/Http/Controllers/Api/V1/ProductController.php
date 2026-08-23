@@ -28,6 +28,16 @@ class ProductController extends Controller
 
         $products = Product::query()
             ->with(['category:id,name', 'brand:id,name'])
+            // Branch-pinned actors (Manager/Cashier) only ever see their own
+            // branch's stock summed here — never another branch's, even
+            // aggregated — matching every other branch-scoped query in this
+            // codebase. An unpinned actor (Owner/Admin) sees the total
+            // across their whole business.
+            ->withSum(['inventories as stock' => function ($query) use ($actor) {
+                if ($actor->branch_id !== null) {
+                    $query->where('branch_id', $actor->branch_id);
+                }
+            }], 'quantity')
             ->whereHas('business', function ($query) use ($actor) {
                 $query->where('client_id', $actor->client_id);
                 if ($actor->business_id !== null) {
@@ -77,11 +87,18 @@ class ProductController extends Controller
         return ApiResponse::success($product->fresh(['category', 'brand']), 'Product created successfully.', 201);
     }
 
-    public function show(Product $product): JsonResponse
+    public function show(Request $request, Product $product): JsonResponse
     {
         $this->authorize('view', $product);
 
-        return ApiResponse::success($product->load(['category', 'brand']), 'Product retrieved successfully.');
+        $actor = $request->user();
+        $product->load(['category', 'brand'])->loadSum(['inventories as stock' => function ($query) use ($actor) {
+            if ($actor->branch_id !== null) {
+                $query->where('branch_id', $actor->branch_id);
+            }
+        }], 'quantity');
+
+        return ApiResponse::success($product, 'Product retrieved successfully.');
     }
 
     public function update(UpdateProductRequest $request, Product $product): JsonResponse

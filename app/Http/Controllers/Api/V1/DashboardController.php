@@ -78,7 +78,7 @@ class DashboardController extends Controller
         $customersCount = Customer::query()->where('business_id', $business->id)->where('status', 'active')->count();
 
         $recentSales = (clone $salesQuery)
-            ->with(['customer:id,name', 'user:id,name', 'branch:id,name'])
+            ->with(['customer:id,name', 'user:id,name', 'branch:id,name', 'payments.paymentMethod:id,name'])
             ->latest('sale_date')
             ->limit(8)
             ->get(['id', 'invoice_number', 'customer_id', 'user_id', 'branch_id', 'total', 'status', 'sale_date']);
