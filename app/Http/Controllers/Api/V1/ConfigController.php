@@ -52,6 +52,18 @@ class ConfigController extends Controller
                 'currency' => $business->currency,
                 'timezone' => $business->timezone,
             ],
+            // The caller's OWN branch, permission-free — a Cashier is
+            // pinned to exactly one branch (User::branch_id) but has no
+            // `businesses.view` permission, so GET /branches (which
+            // requires it) 403s for them. Every branch-scoped screen
+            // (POS, Purchases, Expenses, ...) needs at least this much
+            // just to know their own branch's name — found missing via
+            // live testing as a Cashier, not assumed.
+            'branch' => $user->branch ? [
+                'id' => $user->branch->id,
+                'name' => $user->branch->name,
+                'is_main' => $user->branch->is_main,
+            ] : null,
             'settings' => $businessSettings,
             'features' => $enabledFeatures,
         ], 'Configuration retrieved successfully.');

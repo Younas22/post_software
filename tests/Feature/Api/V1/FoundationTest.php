@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Models\Branch;
 use App\Models\Business;
 use App\Models\Client;
 use App\Models\Feature;
@@ -108,6 +109,38 @@ class FoundationTest extends TestCase
             ->assertJsonPath('data.business.id', $business->id)
             ->assertJsonPath('data.business.currency', 'PKR')
             ->assertJsonFragment(['features' => ['pos']]);
+    }
+
+    public function test_config_endpoint_includes_the_callers_own_branch_permission_free(): void
+    {
+        // A branch-pinned Cashier has no `businesses.view` permission (see
+        // RolePermissionSeeder), so GET /branches 403s for them — this is
+        // the one place they can still learn their own branch's name,
+        // found missing via live Cashier testing, not merely assumed.
+        $client = Client::factory()->create();
+        $business = Business::factory()->create(['client_id' => $client->id]);
+        $branch = Branch::factory()->create(['business_id' => $business->id, 'name' => 'Downtown', 'is_main' => false]);
+        $cashier = User::factory()->create(['client_id' => $client->id, 'business_id' => $business->id, 'branch_id' => $branch->id]);
+        $token = $cashier->createToken('test')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', "Bearer {$token}")->getJson('/api/v1/config');
+
+        $response->assertOk()
+            ->assertJsonPath('data.branch.id', $branch->id)
+            ->assertJsonPath('data.branch.name', 'Downtown')
+            ->assertJsonPath('data.branch.is_main', false);
+    }
+
+    public function test_config_endpoint_branch_is_null_for_an_actor_with_no_fixed_branch(): void
+    {
+        $client = Client::factory()->create();
+        $business = Business::factory()->create(['client_id' => $client->id]);
+        $owner = User::factory()->create(['client_id' => $client->id, 'business_id' => $business->id, 'branch_id' => null]);
+        $token = $owner->createToken('test')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', "Bearer {$token}")->getJson('/api/v1/config');
+
+        $response->assertOk()->assertJsonPath('data.branch', null);
     }
 
     public function test_config_endpoint_cannot_be_redirected_to_another_business_via_a_parameter(): void
