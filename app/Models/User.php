@@ -121,4 +121,37 @@ class User extends Authenticatable
     {
         return $this->status === 'active';
     }
+
+    /**
+     * The business this user should act on when nothing more specific is
+     * given, resolved without ever trusting a client-supplied id:
+     *
+     * 1. A fixed `business_id` on the account (Business Admin/Manager/
+     *    Cashier) always wins.
+     * 2. Otherwise (a Client Owner with no fixed business — free to run
+     *    several businesses under one client), if their client has exactly
+     *    ONE business, that's unambiguous, so use it. This is the common
+     *    case: most client-owner accounts only ever have one business, and
+     *    without this they can't create anything business-scoped (branches,
+     *    products, sales, ...) since every write path needs a business_id
+     *    and the frontend has no multi-business picker yet — found via a
+     *    real account hitting exactly this (see docs/BACKEND_EXTENSIONS.md).
+     * 3. A client with two or more businesses and no fixed business_id
+     *    stays null here — genuinely ambiguous; the caller must supply
+     *    `business_id` explicitly (existing behavior, unchanged).
+     */
+    public function defaultBusinessId(): ?int
+    {
+        if ($this->business_id !== null) {
+            return $this->business_id;
+        }
+
+        if ($this->client_id === null) {
+            return null;
+        }
+
+        $businessIds = Business::query()->where('client_id', $this->client_id)->pluck('id');
+
+        return $businessIds->count() === 1 ? $businessIds->first() : null;
+    }
 }

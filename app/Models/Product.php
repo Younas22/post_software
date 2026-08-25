@@ -31,6 +31,7 @@ class Product extends Model
         'name',
         'sku',
         'barcode',
+        'type',
         'purchase_price',
         'sale_price',
         'tax_rate',
@@ -89,5 +90,17 @@ class Product extends Model
     public function isActive(): bool
     {
         return $this->status === 'active';
+    }
+
+    /**
+     * A service is a sellable catalog item with no physical stock — POS
+     * treats it exactly like a product (search, cart, pricing, tax,
+     * receipt) except SaleService/StockService never touch inventory for
+     * it (see those classes). Never true unless the row was explicitly
+     * created with type=service; existing rows default to 'product'.
+     */
+    public function isService(): bool
+    {
+        return $this->type === 'service';
     }
 }

@@ -60,6 +60,8 @@ class ActivityLoggingTest extends TestCase
             'name' => 'Acme',
             'email' => 'acme@example.com',
             'status' => 'active',
+            'owner_name' => 'Acme Owner',
+            'owner_email' => 'owner@acme.example.com',
         ]);
         $client = Client::query()->where('email', 'acme@example.com')->firstOrFail();
         $this->assertDatabaseHas('activity_logs', ['action' => 'client.created', 'subject_id' => $client->id, 'subject_type' => Client::class]);

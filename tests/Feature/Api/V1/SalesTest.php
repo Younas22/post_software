@@ -273,4 +273,86 @@ class SalesTest extends TestCase
         $this->getJson('/api/v1/sales')->assertUnauthorized();
         $this->postJson('/api/v1/sales', [])->assertUnauthorized();
     }
+
+    // --- Services (non-inventory items) ---
+
+    private function makeService(Business $business, string $name = 'Consulting', float $price = 50): Product
+    {
+        $service = new Product();
+        $service->business_id = $business->id;
+        $service->fill([
+            'name' => $name, 'sku' => 'SVC-'.uniqid(), 'type' => 'service',
+            'purchase_price' => 0, 'sale_price' => $price, 'tax_rate' => 10, 'status' => 'active',
+        ]);
+        $service->save();
+
+        return $service;
+    }
+
+    public function test_a_service_can_be_sold_with_zero_stock_and_never_creates_an_inventory_row(): void
+    {
+        [$business, $branch, $cashier] = $this->posReadySetup();
+        $service = $this->makeService($business);
+
+        $response = $this->actingAsApi($cashier)->postJson('/api/v1/sales', [
+            'branch_id' => $branch->id,
+            'client_transaction_id' => (string) \Illuminate\Support\Str::uuid(),
+            'items' => [['product_id' => $service->id, 'quantity' => 3]],
+            'payments' => [['payment_method_id' => $this->cashMethod()->id, 'amount' => 165]],
+        ]);
+
+        // 3 * 50 = 150 subtotal, 10% tax = 15 -> total 165. Would have thrown
+        // InsufficientStockException before the isService() guard, since a
+        // service never has an inventories row (currentQuantity = 0).
+        $response->assertCreated();
+        $this->assertEquals(150, $response->json('data.subtotal'));
+        $this->assertEquals(165, $response->json('data.total'));
+        $this->assertDatabaseMissing('inventories', ['product_id' => $service->id]);
+        $this->assertDatabaseMissing('stock_movements', ['product_id' => $service->id]);
+    }
+
+    public function test_a_mixed_sale_deducts_stock_only_for_the_physical_product_line(): void
+    {
+        [$business, $branch, $cashier, $product] = $this->posReadySetup(stock: 5);
+        $service = $this->makeService($business);
+
+        $response = $this->actingAsApi($cashier)->postJson('/api/v1/sales', [
+            'branch_id' => $branch->id,
+            'client_transaction_id' => (string) \Illuminate\Support\Str::uuid(),
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => 2],
+                ['product_id' => $service->id, 'quantity' => 1],
+            ],
+            'payments' => [['payment_method_id' => $this->cashMethod()->id, 'amount' => 1000]],
+        ]);
+
+        $response->assertCreated();
+        $this->assertSame(3, app(StockService::class)->currentQuantity($branch, $product), 'physical product stock must be deducted');
+        $this->assertDatabaseMissing('inventories', ['product_id' => $service->id]);
+        $this->assertDatabaseHas('sale_items', ['product_id' => $service->id, 'quantity' => 1]);
+        $this->assertDatabaseHas('sale_items', ['product_id' => $product->id, 'quantity' => 2]);
+    }
+
+    public function test_a_service_is_created_and_listed_via_the_products_api_with_the_type_filter(): void
+    {
+        [$business, , $cashier] = $this->posReadySetup();
+        $cashier->roles()->attach(Role::query()->where('slug', 'business-admin')->firstOrFail());
+
+        $create = $this->actingAsApi($cashier)->postJson('/api/v1/products', [
+            'business_id' => $business->id,
+            'name' => 'Delivery Fee',
+            'sku' => 'SVC-DELIVERY',
+            'type' => 'service',
+            'purchase_price' => 0,
+            'sale_price' => 5,
+            'status' => 'active',
+        ]);
+        $create->assertCreated();
+        $this->assertSame('service', $create->json('data.type'));
+
+        $list = $this->actingAsApi($cashier)->getJson('/api/v1/products?type=service');
+        $list->assertOk();
+        $this->assertTrue(collect($list->json('data'))->every(fn ($p) => $p['type'] === 'service'));
+        $this->assertTrue(collect($list->json('data'))->contains('sku', 'SVC-DELIVERY'));
+    }
 }

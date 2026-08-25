@@ -45,7 +45,7 @@ class CustomerController extends Controller
 
     public function store(StoreCustomerRequest $request): JsonResponse
     {
-        $business = Business::query()->findOrFail($request->user()->business_id ?? $request->integer('business_id'));
+        $business = Business::query()->findOrFail($request->user()->defaultBusinessId() ?? $request->integer('business_id'));
         $this->authorize('create', [Customer::class, $business]);
 
         $customer = new Customer();

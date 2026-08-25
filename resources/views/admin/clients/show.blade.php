@@ -8,6 +8,17 @@
 @endphp
 
 <x-layouts.admin :breadcrumbs="[['label' => 'Clients', 'url' => route('admin.clients.index')], ['label' => $client->name]]">
+    @if (session('generated_password'))
+        <x-alert variant="success" class="mb-6">
+            <p class="font-medium">Owner account created — send these login details to the client now.</p>
+            <p class="mt-1">This password is shown only this once and cannot be retrieved again.</p>
+            <dl class="mt-3 space-y-1 font-mono text-sm">
+                <div><dt class="inline text-emerald-700/70 dark:text-emerald-400/70">Email:</dt> <dd class="inline select-all">{{ session('generated_owner_email') }}</dd></div>
+                <div><dt class="inline text-emerald-700/70 dark:text-emerald-400/70">Password:</dt> <dd class="inline select-all">{{ session('generated_password') }}</dd></div>
+            </dl>
+        </x-alert>
+    @endif
+
     <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
             <div class="flex items-center gap-2">

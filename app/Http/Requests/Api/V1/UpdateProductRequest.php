@@ -30,6 +30,7 @@ class UpdateProductRequest extends FormRequest
             'name' => ['sometimes', 'string', 'max:255'],
             'sku' => ['sometimes', 'string', 'max:100'],
             'barcode' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'type' => ['sometimes', Rule::in(['product', 'service'])],
             'purchase_price' => ['sometimes', 'numeric', 'min:0'],
             'sale_price' => ['sometimes', 'numeric', 'min:0'],
             'tax_rate' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:100'],

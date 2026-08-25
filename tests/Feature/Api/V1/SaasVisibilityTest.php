@@ -81,6 +81,28 @@ class SaasVisibilityTest extends TestCase
         $response->assertCreated()->assertJsonPath('data.name', 'Second Branch');
     }
 
+    public function test_owner_with_no_fixed_business_id_can_still_create_a_branch(): void
+    {
+        // Regression test for a real bug: a Client Owner account is not
+        // pinned to a business_id by design, but when their client only has
+        // one business (the common case), branch creation used to 422 with
+        // "business_id is required" because nothing resolved it — the
+        // frontend has no business_id field on this form at all. Fixed via
+        // User::defaultBusinessId(). Found via a real account
+        // (lavu@mailinator.com) hitting exactly this in the deployed app.
+        [$client, $business, , $owner] = $this->ownerSetup();
+        $owner->forceFill(['business_id' => null])->save();
+        $businessPackage = Package::query()->where('slug', 'business')->firstOrFail();
+        $client->currentSubscription->update(['package_id' => $businessPackage->id]);
+
+        $response = $this->actingAsApi($owner)->postJson('/api/v1/branches', [
+            'name' => 'Second Branch', 'status' => 'active',
+        ]);
+
+        $response->assertCreated();
+        $this->assertDatabaseHas('branches', ['business_id' => $business->id, 'name' => 'Second Branch']);
+    }
+
     public function test_creating_a_branch_beyond_the_package_limit_is_rejected(): void
     {
         [, , , $owner] = $this->ownerSetup();

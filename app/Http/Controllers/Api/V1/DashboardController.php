@@ -34,7 +34,7 @@ class DashboardController extends Controller
             abort(403, 'This action is unauthorized.');
         }
 
-        $businessId = $user->business_id ?? $request->integer('business_id');
+        $businessId = $user->defaultBusinessId() ?? $request->integer('business_id');
         $business = $businessId ? Business::query()->find($businessId) : null;
 
         if (! $business || (! $user->is_super_admin && $business->client_id !== $user->client_id)) {

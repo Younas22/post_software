@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use App\Models\Business;
 use App\Models\Client;
+use App\Models\Package;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
@@ -36,11 +37,76 @@ class ClientManagementTest extends TestCase
             'phone' => '555-0100',
             'status' => 'active',
             'notes' => 'Signed up via referral.',
+            'owner_name' => 'Acme Owner',
+            'owner_email' => 'acme.owner@acme.test',
         ]);
 
         $client = Client::query()->where('email', 'owner@acme.test')->firstOrFail();
         $response->assertRedirect(route('admin.clients.show', $client));
         $this->assertSame('Acme Retail', $client->name);
+    }
+
+    public function test_creating_a_client_also_creates_a_working_owner_login_with_a_one_time_password(): void
+    {
+        $response = $this->actingAs($this->admin())->post(route('admin.clients.store'), [
+            'name' => 'Acme Retail',
+            'email' => 'owner@acme.test',
+            'status' => 'active',
+            'owner_name' => 'Acme Owner',
+            'owner_email' => 'acme.owner@acme.test',
+        ]);
+
+        $client = Client::query()->where('email', 'owner@acme.test')->firstOrFail();
+        $response->assertRedirect(route('admin.clients.show', $client));
+        $response->assertSessionHas('generated_password');
+        $password = session('generated_password');
+
+        $owner = User::query()->where('email', 'acme.owner@acme.test')->firstOrFail();
+        $this->assertSame($client->id, $owner->client_id);
+        $this->assertTrue($owner->hasRole('client-owner'));
+        $this->assertTrue($owner->isActive());
+
+        // The generated password actually works via the API login endpoint.
+        $this->postJson('/api/v1/auth/login', [
+            'email' => 'acme.owner@acme.test',
+            'password' => $password,
+            'device_name' => 'test',
+        ])->assertOk();
+    }
+
+    public function test_creating_a_client_with_a_package_creates_a_trial_subscription(): void
+    {
+        $package = Package::factory()->create();
+
+        $response = $this->actingAs($this->admin())->post(route('admin.clients.store'), [
+            'name' => 'Acme Retail',
+            'email' => 'owner@acme.test',
+            'status' => 'active',
+            'owner_name' => 'Acme Owner',
+            'owner_email' => 'acme.owner@acme.test',
+            'package_id' => $package->id,
+        ]);
+
+        $client = Client::query()->where('email', 'owner@acme.test')->firstOrFail();
+        $response->assertRedirect(route('admin.clients.show', $client));
+        $this->assertSame('trial', $client->currentSubscription->status);
+        $this->assertSame($package->id, $client->currentSubscription->package_id);
+    }
+
+    public function test_owner_email_must_be_unique(): void
+    {
+        $existingUser = User::factory()->create(['email' => 'taken@example.com']);
+
+        $response = $this->actingAs($this->admin())->post(route('admin.clients.store'), [
+            'name' => 'Acme Retail',
+            'email' => 'owner2@acme.test',
+            'status' => 'active',
+            'owner_name' => 'Someone',
+            'owner_email' => 'taken@example.com',
+        ]);
+
+        $response->assertSessionHasErrors('owner_email');
+        $this->assertDatabaseMissing('clients', ['email' => 'owner2@acme.test']);
     }
 
     public function test_client_creation_requires_a_unique_email(): void

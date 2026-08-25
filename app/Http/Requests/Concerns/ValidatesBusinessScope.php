@@ -21,7 +21,7 @@ trait ValidatesBusinessScope
      */
     protected function businessIdRules(): array
     {
-        return $this->user()->business_id !== null
+        return $this->user()->defaultBusinessId() !== null
             ? ['sometimes', 'integer']
             : ['required', 'integer'];
     }
@@ -30,7 +30,7 @@ trait ValidatesBusinessScope
     {
         $user = $this->user();
 
-        return $user->business_id ?? ($this->integer('business_id') ?: null);
+        return $user->defaultBusinessId() ?? ($this->integer('business_id') ?: null);
     }
 
     protected function validateResolvedBusiness(Validator $validator): ?Business

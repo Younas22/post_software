@@ -78,6 +78,15 @@ class SaleService
                 // transaction that's actually short.
                 foreach ($items as $item) {
                     $product = $products[$item['product_id']];
+
+                    // Services carry no physical stock — see
+                    // Product::isService() and the matching skip in
+                    // persist() below. Nothing here ever checks/moves
+                    // inventory for one.
+                    if ($product->isService()) {
+                        continue;
+                    }
+
                     $available = $this->stock->currentQuantity($branch, $product);
 
                     if ($available < $item['quantity']) {
@@ -148,8 +157,15 @@ class SaleService
             // now short (a concurrent sale won the race since our earlier
             // friendly check), this throws and the ENTIRE transaction —
             // sale, items, payments included — rolls back atomically.
+            // Services are skipped entirely: no inventory row, no stock
+            // movement, ever — selling one must never create or touch an
+            // inventories/stock_movements record.
             foreach ($lines['items'] as $line) {
                 $product = $products[$line['product_id']];
+
+                if ($product->isService()) {
+                    continue;
+                }
 
                 $this->stock->adjust(
                     branch: $branch,

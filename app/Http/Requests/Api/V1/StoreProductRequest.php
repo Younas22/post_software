@@ -32,6 +32,7 @@ class StoreProductRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'sku' => ['required', 'string', 'max:100'],
             'barcode' => ['nullable', 'string', 'max:100'],
+            'type' => ['sometimes', Rule::in(['product', 'service'])],
             'purchase_price' => ['required', 'numeric', 'min:0'],
             'sale_price' => ['required', 'numeric', 'min:0'],
             'tax_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],

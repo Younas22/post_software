@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Business;
 use App\Models\Feature;
 use App\Services\FeatureAccessService;
 use App\Services\SettingsService;
@@ -22,11 +23,19 @@ class ConfigController extends Controller
     public function __invoke(Request $request, SettingsService $settings, FeatureAccessService $features): JsonResponse
     {
         $user = $request->user();
-        $business = $user->business;
+        // Falls back to the client's sole business when the user has no
+        // fixed business_id but only one exists — a Client Owner is not
+        // pinned to a business_id by design (they may run several), but
+        // most only ever have one, and without this fallback they'd get no
+        // config/settings/features at all. See User::defaultBusinessId().
+        $businessId = $user->defaultBusinessId();
+        $business = $businessId ? Business::query()->find($businessId) : null;
 
         if (! $business) {
-            // Super Admin (or a user with no business yet) — only
-            // system-wide configuration is meaningful.
+            // Super Admin, a user with no business yet, or a Client Owner
+            // whose client has multiple businesses (genuinely ambiguous,
+            // no business picker exists yet) — only system-wide
+            // configuration is meaningful.
             return ApiResponse::success([
                 'business' => null,
                 'settings' => collect($settings->keysForScope('system'))

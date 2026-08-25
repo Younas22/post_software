@@ -48,6 +48,7 @@ class ProductController extends Controller
             ->when($request->filled('category_id'), fn ($q) => $q->where('category_id', $request->integer('category_id')))
             ->when($request->filled('brand_id'), fn ($q) => $q->where('brand_id', $request->integer('brand_id')))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
+            ->when($request->filled('type'), fn ($q) => $q->where('type', $request->string('type')))
             ->when($request->filled('sku'), fn ($q) => $q->where('sku', $request->string('sku')))
             ->when($request->filled('barcode'), fn ($q) => $q->where('barcode', $request->string('barcode')))
             ->when($search !== '', function ($q) use ($search) {
@@ -66,7 +67,7 @@ class ProductController extends Controller
 
     public function store(StoreProductRequest $request): JsonResponse
     {
-        $business = Business::query()->findOrFail($request->user()->business_id ?? $request->integer('business_id'));
+        $business = Business::query()->findOrFail($request->user()->defaultBusinessId() ?? $request->integer('business_id'));
         $this->authorize('create', [Product::class, $business]);
 
         $product = new Product();
@@ -74,7 +75,7 @@ class ProductController extends Controller
         $product->category_id = $request->integer('category_id') ?: null;
         $product->brand_id = $request->integer('brand_id') ?: null;
         $product->fill($request->safe()->only([
-            'name', 'sku', 'barcode', 'purchase_price', 'sale_price', 'tax_rate',
+            'name', 'sku', 'barcode', 'type', 'purchase_price', 'sale_price', 'tax_rate',
             'unit', 'minimum_stock', 'status', 'description',
         ]));
 
@@ -111,7 +112,7 @@ class ProductController extends Controller
         }
 
         $product->fill($request->safe()->only([
-            'name', 'sku', 'barcode', 'purchase_price', 'sale_price', 'tax_rate',
+            'name', 'sku', 'barcode', 'type', 'purchase_price', 'sale_price', 'tax_rate',
             'unit', 'minimum_stock', 'status', 'description',
         ]));
 

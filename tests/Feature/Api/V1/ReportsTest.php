@@ -127,15 +127,38 @@ class ReportsTest extends TestCase
     public function test_a_multi_business_owner_cannot_report_on_another_clients_business_via_the_param(): void
     {
         [$business, , $owner] = $this->reportableSetup();
-        // Give this owner no fixed business (as a real multi-business
-        // Client Owner would have) so business_id legitimately must come
-        // from the request — and is still verified against their own client.
+        // A genuinely multi-business owner: a second business under the
+        // SAME client, so User::defaultBusinessId() can't resolve one
+        // unambiguously and business_id legitimately must come from the
+        // request — which is still verified against their own client.
+        // (A single-business owner's request param is now ignored entirely
+        // in favor of their one real business — see the next test.)
+        Business::factory()->create(['client_id' => $business->client_id]);
         $owner->forceFill(['business_id' => null])->save();
         $otherClientsBusiness = Business::factory()->create();
 
         $response = $this->actingAsApi($owner)->getJson("/api/v1/reports/sales?business_id={$otherClientsBusiness->id}");
 
         $response->assertStatus(403);
+    }
+
+    public function test_a_single_business_owner_with_no_fixed_business_id_still_resolves_their_own_business(): void
+    {
+        // The common real-world shape: a Client Owner account has no fixed
+        // business_id (they're free to run several), but their client only
+        // ever created one business. Without User::defaultBusinessId()'s
+        // fallback, this account could not use ANY business-scoped screen
+        // (branches, products, dashboard, reports, ...) at all — found via
+        // a real account hitting exactly this. A malicious/wrong business_id
+        // param must be silently ignored, not followed.
+        [$business, , $owner] = $this->reportableSetup();
+        $owner->forceFill(['business_id' => null])->save();
+        $otherClientsBusiness = Business::factory()->create();
+
+        $response = $this->actingAsApi($owner)->getJson("/api/v1/reports/sales?business_id={$otherClientsBusiness->id}");
+
+        $response->assertOk();
+        $this->assertEquals(1, $response->json('data.summary.transaction_count'));
     }
 
     public function test_reports_are_denied_without_the_permission(): void

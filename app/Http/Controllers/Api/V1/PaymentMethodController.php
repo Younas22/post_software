@@ -19,7 +19,7 @@ class PaymentMethodController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $businessId = $user->business_id ?? $request->integer('business_id') ?: null;
+        $businessId = $user->defaultBusinessId() ?? $request->integer('business_id') ?: null;
 
         $methods = PaymentMethod::query()
             ->where('status', 'active')

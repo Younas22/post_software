@@ -6,9 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreClientRequest;
 use App\Http\Requests\Admin\UpdateClientRequest;
 use App\Models\Client;
+use App\Models\Package;
+use App\Models\Role;
+use App\Models\Subscription;
+use App\Models\User;
 use App\Services\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class ClientController extends Controller
@@ -45,16 +52,66 @@ class ClientController extends Controller
     {
         $this->authorize('create', Client::class);
 
-        return view('admin.clients.create');
+        return view('admin.clients.create', [
+            'packages' => Package::query()->where('status', 'active')->orderBy('price')->get(),
+        ]);
     }
 
+    /**
+     * Creates the Client together with its first login (a Client Owner
+     * user) and, optionally, an initial subscription — a bare Client row
+     * with no owner and no subscription is not something the admin who
+     * asked for this could actually hand off: the owner can't even reach
+     * the client dashboard without an active subscription (see
+     * routes/client.php's 'subscription.active' middleware), so leaving
+     * either step out would just move the same problem one screen later.
+     */
     public function store(StoreClientRequest $request, ActivityLogger $logger): RedirectResponse
     {
-        $client = Client::query()->create($request->validated());
+        $generatedPassword = Str::password(14);
+
+        [$client, $owner] = DB::transaction(function () use ($request, $generatedPassword) {
+            $client = Client::query()->create($request->safe()->only(['name', 'email', 'phone', 'status', 'notes']));
+
+            // is_super_admin/client_id/business_id/branch_id are deliberately
+            // excluded from User::$fillable — set here via forceFill, same
+            // pattern as DemoClientSeeder and EmployeeController::store().
+            $owner = new User();
+            $owner->forceFill([
+                'name' => $request->string('owner_name'),
+                'email' => $request->string('owner_email'),
+                'password' => Hash::make($generatedPassword),
+                'status' => 'active',
+                'client_id' => $client->id,
+                'email_verified_at' => now(),
+            ])->save();
+
+            $ownerRole = Role::query()->where('slug', 'client-owner')->first();
+            if ($ownerRole) {
+                $owner->roles()->attach($ownerRole);
+            }
+
+            if ($request->filled('package_id')) {
+                $package = Package::query()->findOrFail($request->integer('package_id'));
+                Subscription::query()->create([
+                    'client_id' => $client->id,
+                    'package_id' => $package->id,
+                    'status' => 'trial',
+                    'trial_ends_at' => now()->addDays(14),
+                    'starts_at' => now(),
+                ]);
+            }
+
+            return [$client, $owner];
+        });
 
         $logger->log('client.created', $client, "Client \"{$client->name}\" created");
+        $logger->log('employee.created', $owner, "Owner account created for \"{$client->name}\"");
 
-        return redirect()->route('admin.clients.show', $client)->with('status', 'Client created.');
+        return redirect()->route('admin.clients.show', $client)
+            ->with('status', 'Client created.')
+            ->with('generated_owner_email', $request->string('owner_email')->value())
+            ->with('generated_password', $generatedPassword);
     }
 
     public function show(Client $client): View
