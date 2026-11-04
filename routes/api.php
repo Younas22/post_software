@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\EmployeeController;
 use App\Http\Controllers\Api\V1\ExpenseController;
+use App\Http\Controllers\Api\V1\InstallmentPlanController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\PaymentMethodController;
@@ -195,6 +196,18 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::middleware('permission:expenses.create')->post('expenses', [ExpenseController::class, 'store'])->name('expenses.store');
         Route::middleware('permission:expenses.update')->match(['put', 'patch'], 'expenses/{expense}', [ExpenseController::class, 'update'])->name('expenses.update');
         Route::middleware('permission:expenses.delete')->delete('expenses/{expense}', [ExpenseController::class, 'destroy'])->name('expenses.destroy');
+
+        // Installment plans — only usable by business types with the
+        // `installments` module enabled (enforced on create). 'summary' is
+        // registered before '{installmentPlan}' so it isn't read as an id.
+        Route::middleware('permission:installments.view')->group(function () {
+            Route::get('installments', [InstallmentPlanController::class, 'index'])->name('installments.index');
+            Route::get('installments/summary', [InstallmentPlanController::class, 'summary'])->name('installments.summary');
+            Route::get('installments/{installmentPlan}', [InstallmentPlanController::class, 'show'])->whereNumber('installmentPlan')->name('installments.show');
+        });
+        Route::middleware('permission:installments.create')->post('installments', [InstallmentPlanController::class, 'store'])->name('installments.store');
+        Route::middleware('permission:installments.collect')->post('installments/{installmentPlan}/payments', [InstallmentPlanController::class, 'collect'])->whereNumber('installmentPlan')->name('installments.collect');
+        Route::middleware('permission:installments.cancel')->patch('installments/{installmentPlan}/cancel', [InstallmentPlanController::class, 'cancel'])->whereNumber('installmentPlan')->name('installments.cancel');
 
         // Sales (POS) — see SaleService for the full "CRITICAL FLOW" this
         // sits behind (permission -> subscription -> feature -> stock ->

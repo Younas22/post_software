@@ -27,6 +27,10 @@ return new class extends Migration
 
         $presets = config('business_types.presets', []);
         $now = now();
+        // Only an already-seeded installation gets the NEW preset types
+        // inserted here; a fresh database gets them from BusinessTypeSeeder
+        // like every other type (and tests start from an empty table).
+        $insertMissing = DB::table('business_types')->exists();
 
         foreach ($presets as $slug => $preset) {
             $row = DB::table('business_types')->where('slug', $slug)->first();
@@ -52,7 +56,7 @@ return new class extends Migration
                     $update['description'] = $preset['description'];
                 }
                 DB::table('business_types')->where('id', $row->id)->update($update);
-            } else {
+            } elseif ($insertMissing) {
                 DB::table('business_types')->insert($payload + [
                     'name' => $preset['name'],
                     'slug' => $slug,
