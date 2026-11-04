@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class Business extends Model
 {
@@ -31,6 +33,16 @@ class Business extends Model
         'timezone',
         'status',
     ];
+
+    /**
+     * Absolute public URL of the uploaded logo (or null). Not appended by
+     * default — callers opt in with ->append('logo_url') so existing
+     * payloads stay unchanged.
+     */
+    protected function logoUrl(): Attribute
+    {
+        return Attribute::get(fn () => $this->logo ? Storage::disk('public')->url($this->logo) : null);
+    }
 
     /**
      * @return BelongsTo<Client, $this>

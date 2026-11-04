@@ -24,6 +24,11 @@ return [
     'app_logo' => ['type' => 'string', 'default' => null, 'scopes' => ['system']],
     'default_currency' => ['type' => 'string', 'default' => 'USD', 'scopes' => ['system']],
     'default_timezone' => ['type' => 'string', 'default' => 'UTC', 'scopes' => ['system']],
+    // Which currencies/timezones clients may pick for their business — a
+    // JSON array of codes, managed on the Super Admin settings page (see
+    // LocaleOptionsService). The defaults above are always kept enabled.
+    'supported_currencies' => ['type' => 'json', 'default' => ['USD', 'EUR', 'GBP', 'PKR', 'INR', 'AED', 'SAR'], 'scopes' => ['system']],
+    'supported_timezones' => ['type' => 'json', 'default' => ['UTC', 'Asia/Karachi', 'Asia/Dubai', 'Asia/Riyadh', 'Asia/Kolkata', 'Europe/London', 'America/New_York'], 'scopes' => ['system']],
     'support_email' => ['type' => 'string', 'default' => null, 'scopes' => ['system']],
     'support_phone' => ['type' => 'string', 'default' => null, 'scopes' => ['system']],
     'maintenance_mode' => ['type' => 'boolean', 'default' => false, 'scopes' => ['system']],

@@ -51,15 +51,29 @@
         <x-input-error :messages="$errors->get('status')" />
     </div>
 
+    @php
+        $localeOptions = app(\App\Services\LocaleOptionsService::class);
+        $selectedCurrency = old('currency', $business->currency ?? $localeOptions->defaultCurrency());
+        $selectedTimezone = old('timezone', $business->timezone ?? $localeOptions->defaultTimezone());
+    @endphp
+
     <div>
         <x-label for="currency" value="Currency" />
-        <x-input id="currency" name="currency" maxlength="3" class="uppercase" :value="old('currency', $business->currency ?? 'USD')" required />
+        <x-select id="currency" name="currency" required>
+            @foreach ($localeOptions->currencyOptions($business->currency ?? null) as $option)
+                <option value="{{ $option['code'] }}" @selected($selectedCurrency === $option['code'])>{{ $option['label'] }}</option>
+            @endforeach
+        </x-select>
         <x-input-error :messages="$errors->get('currency')" />
     </div>
 
     <div>
         <x-label for="timezone" value="Timezone" />
-        <x-input id="timezone" name="timezone" :value="old('timezone', $business->timezone ?? 'UTC')" required placeholder="e.g. Asia/Karachi" />
+        <x-select id="timezone" name="timezone" required>
+            @foreach ($localeOptions->timezoneOptions($business->timezone ?? null) as $option)
+                <option value="{{ $option['id'] }}" @selected($selectedTimezone === $option['id'])>{{ $option['label'] }}</option>
+            @endforeach
+        </x-select>
         <x-input-error :messages="$errors->get('timezone')" />
     </div>
 
@@ -74,7 +88,7 @@
     <div class="sm:col-span-2">
         <x-label for="logo" value="Logo" />
         @if (($business->logo ?? null))
-            <img src="{{ \Illuminate\Support\Facades\Storage::url($business->logo) }}" alt="" class="mb-2 h-12 w-12 rounded-md border border-neutral-200 object-cover dark:border-neutral-800">
+            <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($business->logo) }}" alt="" class="mb-2 h-12 w-12 rounded-md border border-neutral-200 object-cover dark:border-neutral-800">
         @endif
         <input id="logo" type="file" name="logo" accept="image/*"
             class="block w-full text-sm text-neutral-600 file:mr-4 file:rounded-md file:border-0 file:bg-neutral-100 file:px-4 file:py-2 file:text-sm file:font-medium file:text-neutral-700 hover:file:bg-neutral-200 dark:text-neutral-400 dark:file:bg-neutral-800 dark:file:text-neutral-300 dark:hover:file:bg-neutral-700">

@@ -2,12 +2,15 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Http\Requests\Admin\Concerns\BusinessTypeBrandingRules;
 use App\Models\BusinessType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class UpdateBusinessTypeRequest extends FormRequest
 {
+    use BusinessTypeBrandingRules;
+
     public function authorize(): bool
     {
         /** @var BusinessType $businessType */
@@ -29,6 +32,7 @@ class UpdateBusinessTypeRequest extends FormRequest
             'slug' => ['nullable', 'string', 'max:255', 'alpha_dash', Rule::unique('business_types', 'slug')->ignore($businessType->id)],
             'description' => ['nullable', 'string', 'max:2000'],
             'is_active' => ['nullable', 'boolean'],
+            ...$this->brandingRules(),
         ];
     }
 }

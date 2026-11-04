@@ -66,6 +66,10 @@ class PermissionSeeder extends Seeder
             'expenses.create',
             'expenses.update',
             'expenses.delete',
+            'installments.view',
+            'installments.create',
+            'installments.collect',
+            'installments.cancel',
         ];
 
         foreach ($slugs as $slug) {

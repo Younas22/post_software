@@ -79,7 +79,7 @@ class SyncController extends Controller
 
         return ApiResponse::success([
             'device' => ['id' => $device->id, 'name' => $device->name, 'status' => $device->status],
-            'business' => ['id' => $business->id, 'name' => $business->name, 'currency' => $business->currency, 'timezone' => $business->timezone],
+            'business' => ['id' => $business->id, 'name' => $business->name, 'currency' => $business->currency, 'timezone' => $business->timezone, 'logo_url' => $business->logo_url],
             'branch' => ['id' => $branch->id, 'name' => $branch->name, 'address' => $branch->address, 'phone' => $branch->phone],
             'settings' => $businessSettings,
             'features' => $enabledFeatures,

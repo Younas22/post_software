@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Models\Business;
+use App\Services\LocaleOptionsService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -21,6 +22,10 @@ class UpdateBusinessRequest extends FormRequest
      */
     public function rules(): array
     {
+        $locale = app(LocaleOptionsService::class);
+        /** @var Business|null $business */
+        $business = $this->route('business');
+
         return [
             'client_id' => ['required', 'exists:clients,id'],
             'business_type_id' => ['required', 'exists:business_types,id'],
@@ -29,8 +34,10 @@ class UpdateBusinessRequest extends FormRequest
             'email' => ['nullable', 'string', 'email', 'max:255'],
             'address' => ['nullable', 'string', 'max:2000'],
             'logo' => ['nullable', 'image', 'max:2048', 'dimensions:max_width=4000,max_height=4000'],
-            'currency' => ['required', 'string', 'size:3'],
-            'timezone' => ['required', 'string', 'timezone'],
+            // Enabled options plus this business's current value, so an
+            // admin narrowing the list never blocks re-saving it unchanged.
+            'currency' => ['required', 'string', Rule::in($locale->allowedCurrencyCodes($business?->currency))],
+            'timezone' => ['required', 'string', Rule::in($locale->allowedTimezoneIds($business?->timezone))],
             'status' => ['required', Rule::in(['active', 'inactive'])],
         ];
     }

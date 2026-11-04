@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Models\Business;
+use App\Services\LocaleOptionsService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -18,6 +19,8 @@ class StoreBusinessRequest extends FormRequest
      */
     public function rules(): array
     {
+        $locale = app(LocaleOptionsService::class);
+
         return [
             'client_id' => ['required', 'exists:clients,id'],
             'business_type_id' => ['required', 'exists:business_types,id'],
@@ -30,8 +33,10 @@ class StoreBusinessRequest extends FormRequest
             // The dimension cap stops a small-file-size, huge-pixel-count
             // image (a decompression-bomb-style upload) past the 2MB check.
             'logo' => ['nullable', 'image', 'max:2048', 'dimensions:max_width=4000,max_height=4000'],
-            'currency' => ['required', 'string', 'size:3'],
-            'timezone' => ['required', 'string', 'timezone'],
+            // Only the currencies/timezones the Super Admin has enabled in
+            // System Settings (see LocaleOptionsService).
+            'currency' => ['required', 'string', Rule::in($locale->allowedCurrencyCodes())],
+            'timezone' => ['required', 'string', Rule::in($locale->allowedTimezoneIds())],
             'status' => ['required', Rule::in(['active', 'inactive'])],
         ];
     }

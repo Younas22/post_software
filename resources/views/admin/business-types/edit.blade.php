@@ -1,9 +1,9 @@
 <x-layouts.admin :breadcrumbs="[['label' => 'Configuration', 'url' => route('admin.business-types.index')], ['label' => 'Business Types', 'url' => route('admin.business-types.index')], ['label' => 'Edit '.$businessType->name]]">
-    <div class="mx-auto max-w-2xl">
+    <div class="mx-auto max-w-5xl">
         <h1 class="mb-6 text-lg font-semibold text-neutral-900 dark:text-white">Edit Business Type</h1>
 
         <x-card>
-            <form method="POST" action="{{ route('admin.business-types.update', $businessType) }}" class="space-y-6">
+            <form method="POST" action="{{ route('admin.business-types.update', $businessType) }}" class="space-y-6" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
                 @include('admin.business-types._form', ['businessType' => $businessType])

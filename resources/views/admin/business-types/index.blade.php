@@ -14,7 +14,8 @@
                 <thead class="border-b border-neutral-200 text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
                     <tr>
                         <th class="px-4 py-3 font-medium">Name</th>
-                        <th class="px-4 py-3 font-medium">Slug</th>
+                        <th class="px-4 py-3 font-medium">Login URL</th>
+                        <th class="px-4 py-3 font-medium">Calls customers</th>
                         <th class="px-4 py-3 font-medium">Businesses</th>
                         <th class="px-4 py-3 font-medium">Status</th>
                         <th class="px-4 py-3"></th>
@@ -23,8 +24,20 @@
                 <tbody class="divide-y divide-neutral-100 dark:divide-neutral-800">
                     @foreach ($businessTypes as $type)
                         <tr>
-                            <td class="px-4 py-3 text-neutral-900 dark:text-white">{{ $type->name }}</td>
-                            <td class="px-4 py-3 font-mono text-xs text-neutral-500 dark:text-neutral-400">{{ $type->slug }}</td>
+                            @php $typeTheme = $type->resolvedTheme(); $typeTerms = $type->resolvedTerminology(); @endphp
+                            <td class="px-4 py-3 text-neutral-900 dark:text-white">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="inline-block h-4 w-4 shrink-0 rounded-full border border-black/10" style="background: {{ $typeTheme['primary_color'] }}"></span>
+                                    <span>{{ $type->name }}</span>
+                                    @if (in_array('installments', $type->resolvedModules()['enabled'], true))
+                                        <x-badge variant="neutral">installments</x-badge>
+                                    @endif
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 font-mono text-xs">
+                                <a href="{{ rtrim(config('app.frontend_url'), '/') }}/login/{{ $type->slug }}" target="_blank" rel="noopener" class="text-neutral-500 underline hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white">/login/{{ $type->slug }}</a>
+                            </td>
+                            <td class="px-4 py-3 text-neutral-500 dark:text-neutral-400">{{ $typeTerms['customers'] }}</td>
                             <td class="px-4 py-3 text-neutral-500 dark:text-neutral-400">{{ $type->businesses_count }}</td>
                             <td class="px-4 py-3">
                                 <x-badge :variant="$type->is_active ? 'success' : 'neutral'">{{ $type->is_active ? 'active' : 'inactive' }}</x-badge>

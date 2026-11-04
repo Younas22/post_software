@@ -2,7 +2,7 @@
     <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div class="flex items-center gap-3">
             @if ($business->logo)
-                <img src="{{ \Illuminate\Support\Facades\Storage::url($business->logo) }}" alt="" class="h-12 w-12 rounded-md border border-neutral-200 object-cover dark:border-neutral-800">
+                <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($business->logo) }}" alt="" class="h-12 w-12 rounded-md border border-neutral-200 object-cover dark:border-neutral-800">
             @endif
             <div>
                 <div class="flex items-center gap-2">

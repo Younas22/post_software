@@ -38,6 +38,7 @@ class ConfigController extends Controller
             // configuration is meaningful.
             return ApiResponse::success([
                 'business' => null,
+                'business_type' => null,
                 'settings' => collect($settings->keysForScope('system'))
                     ->mapWithKeys(fn ($definition, $key) => [$key => $settings->resolve($key)]),
                 'features' => [],
@@ -60,7 +61,12 @@ class ConfigController extends Controller
                 'name' => $business->name,
                 'currency' => $business->currency,
                 'timezone' => $business->timezone,
+                'logo_url' => $business->logo_url,
             ],
+            // Trade-specific branding (colours, terminology, which modules
+            // to show) — the Universal POS dresses itself up per business
+            // type. Null when the business has no type assigned.
+            'business_type' => $business->businessType?->brandingPayload(),
             // The caller's OWN branch, permission-free â€” a Cashier is
             // pinned to exactly one branch (User::branch_id) but has no
             // `businesses.view` permission, so GET /branches (which

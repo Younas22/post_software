@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\AccountController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BranchController;
+use App\Http\Controllers\Api\V1\BrandingController;
 use App\Http\Controllers\Api\V1\BrandController;
 use App\Http\Controllers\Api\V1\BusinessController;
 use App\Http\Controllers\Api\V1\CategoryController;
@@ -43,6 +44,12 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('health', fn () => ApiResponse::success(['status' => 'ok'], 'Service is healthy.'))->name('health');
 
+    // Public branding for a business type's own login URL (/login/{slug}).
+    Route::get('public/branding/{slug}', [BrandingController::class, 'show'])
+        ->middleware('throttle:60,1')
+        ->where('slug', '[A-Za-z0-9_-]+')
+        ->name('public.branding');
+
     Route::post('auth/login', [AuthController::class, 'login'])
         ->middleware('throttle:10,1')
         ->name('auth.login');
@@ -75,6 +82,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
         // "My business" profile — previously Admin-Blade-only.
         Route::get('business', [BusinessController::class, 'show'])->name('business.show');
+        Route::get('business/locale-options', [BusinessController::class, 'localeOptions'])->name('business.locale-options');
         Route::put('business', [BusinessController::class, 'update'])->name('business.update');
         Route::put('business/settings', [BusinessController::class, 'updateSettings'])->name('business.settings.update');
 

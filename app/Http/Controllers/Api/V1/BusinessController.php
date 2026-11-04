@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Business;
+use App\Services\LocaleOptionsService;
 use App\Services\SettingsService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -23,10 +24,27 @@ class BusinessController extends Controller
     {
         $business = $this->authorizedBusiness($request, 'businesses.view');
 
-        return ApiResponse::success($business->load('businessType'), 'Business retrieved successfully.');
+        return ApiResponse::success($business->load('businessType')->append('logo_url'), 'Business retrieved successfully.');
     }
 
-    public function update(Request $request): JsonResponse
+    /**
+     * The currencies/timezones this business may pick from — the Super
+     * Admin's enabled set (System Settings) plus the business's own current
+     * values. Readable by anyone who can view the business profile.
+     */
+    public function localeOptions(Request $request, LocaleOptionsService $locale): JsonResponse
+    {
+        $business = $this->authorizedBusiness($request, 'businesses.view');
+
+        return ApiResponse::success([
+            'currencies' => $locale->currencyOptions($business->currency),
+            'timezones' => $locale->timezoneOptions($business->timezone),
+            'default_currency' => $locale->defaultCurrency(),
+            'default_timezone' => $locale->defaultTimezone(),
+        ], 'Locale options retrieved successfully.');
+    }
+
+    public function update(Request $request, LocaleOptionsService $locale): JsonResponse
     {
         $business = $this->authorizedBusiness($request, 'businesses.update');
 
@@ -36,8 +54,8 @@ class BusinessController extends Controller
             'email' => ['nullable', 'string', 'email', 'max:255'],
             'address' => ['nullable', 'string', 'max:2000'],
             'logo' => ['nullable', 'image', 'max:2048'],
-            'currency' => ['required', 'string', 'size:3'],
-            'timezone' => ['required', 'string', 'timezone'],
+            'currency' => ['required', 'string', Rule::in($locale->allowedCurrencyCodes($business->currency))],
+            'timezone' => ['required', 'string', Rule::in($locale->allowedTimezoneIds($business->timezone))],
         ]);
 
         if ($request->hasFile('logo')) {
@@ -51,7 +69,7 @@ class BusinessController extends Controller
 
         $business->update($data);
 
-        return ApiResponse::success($business, 'Business updated successfully.');
+        return ApiResponse::success($business->append('logo_url'), 'Business updated successfully.');
     }
 
     public function updateSettings(Request $request, SettingsService $settings): JsonResponse

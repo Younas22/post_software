@@ -8,28 +8,24 @@ use Illuminate\Database\Seeder;
 class BusinessTypeSeeder extends Seeder
 {
     /**
-     * Seed the application's database.
+     * Seeds every preset from config/business_types.php. Branding columns
+     * (theme/terminology/modules) are only filled when still empty, so
+     * re-running the seeder never wipes what the Super Admin customised.
      */
     public function run(): void
     {
-        $types = [
-            ['name' => 'Grocery', 'slug' => 'grocery'],
-            ['name' => 'Restaurant', 'slug' => 'restaurant'],
-            ['name' => 'Pharmacy', 'slug' => 'pharmacy'],
-            ['name' => 'Electronics', 'slug' => 'electronics'],
-            ['name' => 'Clothing', 'slug' => 'clothing'],
-            ['name' => 'Salon', 'slug' => 'salon'],
-            ['name' => 'Hardware', 'slug' => 'hardware'],
-            ['name' => 'Services', 'slug' => 'services'],
-            ['name' => 'Wholesale', 'slug' => 'wholesale'],
-            ['name' => 'Other', 'slug' => 'other'],
-        ];
-
-        foreach ($types as $type) {
-            BusinessType::query()->updateOrCreate(
-                ['slug' => $type['slug']],
-                ['name' => $type['name'], 'is_active' => true]
-            );
+        foreach (config('business_types.presets', []) as $slug => $preset) {
+            $type = BusinessType::query()->firstOrNew(['slug' => $slug]);
+            $type->name = $type->name ?: $preset['name'];
+            $type->description = $type->description ?: ($preset['description'] ?? null);
+            $type->icon = $type->icon ?: ($preset['icon'] ?? null);
+            $type->theme = $type->theme ?: ($preset['theme'] ?? []);
+            $type->terminology = $type->terminology ?: ($preset['terminology'] ?? []);
+            $type->modules = $type->modules ?: array_merge(['hidden' => [], 'enabled' => []], $preset['modules'] ?? []);
+            if (! $type->exists) {
+                $type->is_active = true;
+            }
+            $type->save();
         }
     }
 }

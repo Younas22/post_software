@@ -39,6 +39,7 @@ class RolePermissionSeeder extends Seeder
                 'cash_sessions.view', 'cash_sessions.operate', 'cash_sessions.manage',
                 'reports.view',
                 'expenses.view', 'expenses.create', 'expenses.update', 'expenses.delete',
+                'installments.view', 'installments.create', 'installments.collect', 'installments.cancel',
             ],
             'client-owner' => [
                 'dashboard.view',
@@ -58,6 +59,7 @@ class RolePermissionSeeder extends Seeder
                 'cash_sessions.view', 'cash_sessions.operate', 'cash_sessions.manage',
                 'reports.view',
                 'expenses.view', 'expenses.create', 'expenses.update', 'expenses.delete',
+                'installments.view', 'installments.create', 'installments.collect', 'installments.cancel',
             ],
             'business-admin' => [
                 'dashboard.view',
@@ -75,6 +77,7 @@ class RolePermissionSeeder extends Seeder
                 'cash_sessions.view', 'cash_sessions.operate', 'cash_sessions.manage',
                 'reports.view',
                 'expenses.view', 'expenses.create', 'expenses.update', 'expenses.delete',
+                'installments.view', 'installments.create', 'installments.collect', 'installments.cancel',
             ],
             'manager' => [
                 'dashboard.view',
@@ -92,6 +95,7 @@ class RolePermissionSeeder extends Seeder
                 'cash_sessions.view', 'cash_sessions.operate', 'cash_sessions.manage',
                 'reports.view',
                 'expenses.view', 'expenses.create', 'expenses.update',
+                'installments.view', 'installments.create', 'installments.collect',
             ],
             'cashier' => [
                 'dashboard.view',
@@ -102,6 +106,7 @@ class RolePermissionSeeder extends Seeder
                 'sales.view', 'sales.create',
                 'returns.view', 'returns.process',
                 'cash_sessions.operate',
+                'installments.view', 'installments.collect',
             ],
         ];
 
