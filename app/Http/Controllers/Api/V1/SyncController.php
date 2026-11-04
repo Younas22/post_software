@@ -192,6 +192,8 @@ class SyncController extends Controller
             transform: fn (Product $p) => [
                 'id' => $p->id, 'category_id' => $p->category_id, 'brand_id' => $p->brand_id,
                 'name' => $p->name, 'sku' => $p->sku, 'barcode' => $p->barcode,
+                // "service" = sold without stock (restaurant dishes, treatments, salon services ...)
+                'type' => $p->type ?? 'product',
                 'sale_price' => $p->sale_price, 'purchase_price' => $p->purchase_price, 'tax_rate' => $p->tax_rate,
                 'unit' => $p->unit, 'minimum_stock' => $p->minimum_stock, 'status' => $p->status,
                 'image' => $p->image, 'updated_at' => $p->updated_at,
