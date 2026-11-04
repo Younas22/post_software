@@ -30,7 +30,7 @@ $systemNav = [
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
-    @include('layouts.partials.head', ['title' => $pageTitle.' · Admin'])
+    @include('layouts.partials.head', ['title' => $pageTitle.' · '.app(\App\Support\Branding::class)->name()])
 
     {{-- Sidebar collapse state, applied pre-paint to avoid a flash of the
          wrong width (mirrors the theme pre-paint script in the shared head
@@ -54,11 +54,16 @@ $systemNav = [
         <aside id="admin-sidebar" class="flex w-64 flex-col border-r border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
             <div class="flex h-16 shrink-0 items-center justify-between border-b border-neutral-200 px-4 dark:border-neutral-800">
                 <a href="{{ route('admin.dashboard') }}" class="flex min-w-0 items-center gap-2">
-                    <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-neutral-900 text-xs font-bold text-white dark:bg-white dark:text-neutral-900">
-                        P
-                    </span>
-                    <span id="admin-sidebar-brand-text" class="truncate text-sm font-semibold text-neutral-900 dark:text-white">
-                        Universal POS
+                    @php($branding = app(\App\Support\Branding::class))
+                    @if ($branding->logoUrl())
+                        <img src="{{ $branding->logoUrl() }}" alt="" class="h-8 w-8 shrink-0 rounded-md border border-neutral-200 bg-white object-contain p-0.5 dark:border-neutral-700">
+                    @else
+                        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-neutral-900 text-xs font-bold text-white dark:bg-white dark:text-neutral-900">
+                            {{ $branding->initials() }}
+                        </span>
+                    @endif
+                    <span id="admin-sidebar-brand-text" class="truncate text-sm font-semibold text-neutral-900 dark:text-white" title="{{ $branding->name() }}">
+                        {{ $branding->name() }}
                     </span>
                 </a>
 

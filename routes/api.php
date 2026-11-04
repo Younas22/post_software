@@ -73,6 +73,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
         // Self-service account actions for the currently authenticated user.
         Route::put('user/password', [AccountController::class, 'updatePassword'])->name('user.password.update');
+        // POST (not PUT) for the upload: PHP only parses multipart bodies on POST.
+        Route::post('user/avatar', [AccountController::class, 'updateAvatar'])->middleware('throttle:20,1')->name('user.avatar.update');
+        Route::delete('user/avatar', [AccountController::class, 'removeAvatar'])->name('user.avatar.destroy');
         Route::put('user/profile', [AccountController::class, 'updateProfile'])->name('user.profile.update');
 
         // Notifications — reads back what the scheduled subscription/device

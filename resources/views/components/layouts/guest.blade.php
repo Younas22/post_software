@@ -6,8 +6,12 @@
 <body class="min-h-screen bg-neutral-50 font-sans text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-100">
     <div class="flex min-h-screen flex-col">
         <header class="flex items-center justify-between px-6 py-5 sm:px-10">
-            <span class="text-sm font-semibold tracking-tight text-neutral-900 dark:text-white">
-                Universal POS SaaS
+            @php($branding = app(\App\Support\Branding::class))
+            <span class="flex items-center gap-2 text-sm font-semibold tracking-tight text-neutral-900 dark:text-white">
+                @if ($branding->logoUrl())
+                    <img src="{{ $branding->logoUrl() }}" alt="" class="h-8 w-8 rounded-md border border-neutral-200 bg-white object-contain p-0.5 dark:border-neutral-700">
+                @endif
+                {{ $branding->name() }}
             </span>
             <x-theme-toggle />
         </header>
@@ -19,7 +23,10 @@
         </main>
 
         <footer class="px-6 pb-6 text-center text-xs text-neutral-400 dark:text-neutral-600">
-            &copy; {{ now()->year }} Universal POS SaaS
+            &copy; {{ now()->year }} {{ $branding->name() }}
+            @if ($branding->officeAddress())
+                <span class="mt-1 block">{{ $branding->officeAddress() }}</span>
+            @endif
         </footer>
     </div>
 </body>

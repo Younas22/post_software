@@ -24,7 +24,7 @@ class BusinessController extends Controller
     {
         $business = $this->authorizedBusiness($request, 'businesses.view');
 
-        return ApiResponse::success($business->load('businessType')->append('logo_url'), 'Business retrieved successfully.');
+        return ApiResponse::success($business->load('businessType')->append(['logo_url', 'favicon_url']), 'Business retrieved successfully.');
     }
 
     /**
@@ -53,23 +53,32 @@ class BusinessController extends Controller
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'string', 'email', 'max:255'],
             'address' => ['nullable', 'string', 'max:2000'],
-            'logo' => ['nullable', 'image', 'max:2048'],
+            'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            // Browser-tab icon. SVG is deliberately not accepted: an
+            // uploaded SVG served from the public disk could carry script.
+            'favicon' => ['nullable', 'file', 'mimes:png,ico,jpg,jpeg,webp', 'max:1024'],
+            'remove_logo' => ['nullable', 'boolean'],
+            'remove_favicon' => ['nullable', 'boolean'],
             'currency' => ['required', 'string', Rule::in($locale->allowedCurrencyCodes($business->currency))],
             'timezone' => ['required', 'string', Rule::in($locale->allowedTimezoneIds($business->timezone))],
         ]);
+        unset($data['logo'], $data['favicon'], $data['remove_logo'], $data['remove_favicon']);
 
-        if ($request->hasFile('logo')) {
-            if ($business->logo) {
-                Storage::disk('public')->delete($business->logo);
+        foreach (['logo' => 'business-logos', 'favicon' => 'business-favicons'] as $field => $folder) {
+            if ($request->hasFile($field)) {
+                if ($business->{$field}) {
+                    Storage::disk('public')->delete($business->{$field});
+                }
+                $data[$field] = $request->file($field)->store($folder, 'public');
+            } elseif ($request->boolean("remove_{$field}") && $business->{$field}) {
+                Storage::disk('public')->delete($business->{$field});
+                $data[$field] = null;
             }
-            $data['logo'] = $request->file('logo')->store('business-logos', 'public');
-        } else {
-            unset($data['logo']);
         }
 
         $business->update($data);
 
-        return ApiResponse::success($business->append('logo_url'), 'Business updated successfully.');
+        return ApiResponse::success($business->append(['logo_url', 'favicon_url']), 'Business updated successfully.');
     }
 
     public function updateSettings(Request $request, SettingsService $settings): JsonResponse

@@ -21,7 +21,11 @@
 return [
 
     'app_name' => ['type' => 'string', 'default' => 'Universal POS SaaS', 'scopes' => ['system']],
+    // Uploaded files (public disk paths) — managed via the Branding section
+    // of the Super Admin settings page, see SettingController.
     'app_logo' => ['type' => 'string', 'default' => null, 'scopes' => ['system']],
+    'app_favicon' => ['type' => 'string', 'default' => null, 'scopes' => ['system']],
+    'office_address' => ['type' => 'string', 'default' => null, 'scopes' => ['system']],
     'default_currency' => ['type' => 'string', 'default' => 'USD', 'scopes' => ['system']],
     'default_timezone' => ['type' => 'string', 'default' => 'UTC', 'scopes' => ['system']],
     // Which currencies/timezones clients may pick for their business — a

@@ -29,6 +29,7 @@ class Business extends Model
         'email',
         'address',
         'logo',
+        'favicon',
         'currency',
         'timezone',
         'status',
@@ -42,6 +43,12 @@ class Business extends Model
     protected function logoUrl(): Attribute
     {
         return Attribute::get(fn () => $this->logo ? Storage::disk('public')->url($this->logo) : null);
+    }
+
+    /** Absolute public URL of the browser-tab icon (or null). Opt-in via ->append('favicon_url'). */
+    protected function faviconUrl(): Attribute
+    {
+        return Attribute::get(fn () => $this->favicon ? Storage::disk('public')->url($this->favicon) : null);
     }
 
     /**

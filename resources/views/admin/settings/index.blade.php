@@ -6,14 +6,118 @@
         </p>
     </div>
 
+    @php
+        $branding = app(\App\Support\Branding::class);
+        $brandingKeys = ['app_name', 'office_address', 'support_email', 'support_phone'];
+    @endphp
+
     <div class="space-y-6">
+        {{-- Company branding: shown in the admin sidebar, browser tab,
+             login pages and on the dashboard. --}}
+        <x-card class="max-w-4xl">
+            <div class="mb-5">
+                <h2 class="text-base font-semibold text-neutral-900 dark:text-white">Company Branding</h2>
+                <p class="text-sm text-neutral-500 dark:text-neutral-400">
+                    Your company name, logo, favicon and office address — shown on the dashboard, the sidebar, the browser tab and the login page.
+                </p>
+            </div>
+
+            <form method="POST" action="{{ route('admin.settings.update') }}" enctype="multipart/form-data" class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                @csrf
+                @method('PUT')
+
+                <div class="sm:col-span-2">
+                    <x-label for="app_name" value="Company name" />
+                    <x-input id="app_name" name="app_name" :value="old('app_name', $values['app_name'] ?? '')" maxlength="255" />
+                    <x-input-error :messages="$errors->get('app_name')" />
+                </div>
+
+                {{-- Logo --}}
+                <div>
+                    <x-label for="app_logo" value="Company logo" />
+                    <div class="mt-1 flex items-center gap-4">
+                        <div class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-neutral-200 bg-white dark:border-neutral-800">
+                            @if ($branding->logoUrl())
+                                <img src="{{ $branding->logoUrl() }}" alt="" class="h-full w-full object-contain p-1" data-preview="app_logo">
+                            @else
+                                <span class="text-lg font-bold text-neutral-400" data-preview-fallback="app_logo">{{ $branding->initials() }}</span>
+                                <img src="" alt="" class="hidden h-full w-full object-contain p-1" data-preview="app_logo">
+                            @endif
+                        </div>
+                        <div class="min-w-0 flex-1 space-y-2">
+                            <input id="app_logo" name="app_logo" type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-preview-input="app_logo" class="block w-full text-sm text-neutral-600 file:mr-3 file:rounded-md file:border-0 file:bg-neutral-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-neutral-700 hover:file:bg-neutral-200 dark:text-neutral-400 dark:file:bg-neutral-800 dark:file:text-neutral-200">
+                            <p class="text-xs text-neutral-500 dark:text-neutral-400">PNG, JPG, WEBP or GIF, max 2MB.</p>
+                            @if ($branding->logoUrl())
+                                <label class="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-400">
+                                    <input type="checkbox" name="remove_app_logo" value="1" class="rounded border-neutral-300 dark:border-neutral-700"> Remove logo
+                                </label>
+                            @endif
+                        </div>
+                    </div>
+                    <x-input-error :messages="$errors->get('app_logo')" />
+                </div>
+
+                {{-- Favicon --}}
+                <div>
+                    <x-label for="app_favicon" value="Favicon (browser tab icon)" />
+                    <div class="mt-1 flex items-center gap-4">
+                        <div class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-neutral-200 bg-white dark:border-neutral-800">
+                            @if ($branding->faviconUrl())
+                                <img src="{{ $branding->faviconUrl() }}" alt="" class="h-8 w-8 object-contain" data-preview="app_favicon">
+                            @else
+                                <span class="text-xs text-neutral-400" data-preview-fallback="app_favicon">None</span>
+                                <img src="" alt="" class="hidden h-8 w-8 object-contain" data-preview="app_favicon">
+                            @endif
+                        </div>
+                        <div class="min-w-0 flex-1 space-y-2">
+                            <input id="app_favicon" name="app_favicon" type="file" accept="image/png,image/x-icon,image/vnd.microsoft.icon,image/jpeg,image/webp,image/gif,.ico" data-preview-input="app_favicon" class="block w-full text-sm text-neutral-600 file:mr-3 file:rounded-md file:border-0 file:bg-neutral-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-neutral-700 hover:file:bg-neutral-200 dark:text-neutral-400 dark:file:bg-neutral-800 dark:file:text-neutral-200">
+                            <p class="text-xs text-neutral-500 dark:text-neutral-400">Square PNG or ICO (e.g. 32×32 or 64×64), max 512KB.</p>
+                            @if ($branding->faviconUrl())
+                                <label class="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-400">
+                                    <input type="checkbox" name="remove_app_favicon" value="1" class="rounded border-neutral-300 dark:border-neutral-700"> Remove favicon
+                                </label>
+                            @endif
+                        </div>
+                    </div>
+                    <x-input-error :messages="$errors->get('app_favicon')" />
+                </div>
+
+                <div class="sm:col-span-2">
+                    <x-label for="office_address" value="Office address" />
+                    <textarea id="office_address" name="office_address" rows="3" maxlength="2000" placeholder="e.g. Office #12, 3rd Floor, Blue Area, Islamabad, Pakistan"
+                        class="block w-full rounded-md border border-neutral-300 bg-white px-3.5 py-2.5 text-sm text-neutral-900 shadow-sm placeholder:text-neutral-400 focus:border-neutral-900 focus:outline-none focus:ring-1 focus:ring-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder:text-neutral-500 dark:focus:border-white dark:focus:ring-white">{{ old('office_address', $values['office_address'] ?? '') }}</textarea>
+                    <x-input-error :messages="$errors->get('office_address')" />
+                </div>
+
+                <div>
+                    <x-label for="support_email" value="Support email" />
+                    <x-input id="support_email" name="support_email" type="email" :value="old('support_email', $values['support_email'] ?? '')" />
+                    <x-input-error :messages="$errors->get('support_email')" />
+                </div>
+
+                <div>
+                    <x-label for="support_phone" value="Support phone" />
+                    <x-input id="support_phone" name="support_phone" :value="old('support_phone', $values['support_phone'] ?? '')" />
+                    <x-input-error :messages="$errors->get('support_phone')" />
+                </div>
+
+                <div class="sm:col-span-2">
+                    <x-button type="submit">Save branding</x-button>
+                </div>
+            </form>
+        </x-card>
+
         <x-card class="max-w-2xl">
+            <div class="mb-5">
+                <h2 class="text-base font-semibold text-neutral-900 dark:text-white">General</h2>
+            </div>
             <form method="POST" action="{{ route('admin.settings.update') }}" class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 @csrf
                 @method('PUT')
 
                 @foreach ($systemKeys as $key => $definition)
-                    <div @class(['sm:col-span-2' => in_array($key, ['app_name', 'app_logo'])])>
+                    @continue(in_array($key, $brandingKeys, true))
+                    <div>
                         <x-label :for="$key" :value="\Illuminate\Support\Str::of($key)->replace('_', ' ')->title()" />
 
                         @if ($definition['type'] === 'boolean')
@@ -150,6 +254,20 @@
     </div>
 
     <script>
+        // Live preview of a newly picked logo/favicon before saving.
+        document.querySelectorAll('[data-preview-input]').forEach(function (input) {
+            input.addEventListener('change', function () {
+                var key = input.dataset.previewInput;
+                var file = input.files && input.files[0];
+                var img = document.querySelector('[data-preview="' + key + '"]');
+                var fallback = document.querySelector('[data-preview-fallback="' + key + '"]');
+                if (!file || !img) return;
+                img.src = URL.createObjectURL(file);
+                img.classList.remove('hidden');
+                if (fallback) fallback.classList.add('hidden');
+            });
+        });
+
         (function () {
             document.querySelectorAll('[data-locale-form] [data-picker]').forEach(function (picker) {
                 var search = picker.querySelector('[data-search]');

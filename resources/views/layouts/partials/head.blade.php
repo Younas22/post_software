@@ -1,6 +1,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ $title ?? config('app.name', 'Universal POS SaaS') }}</title>
+@php($branding = app(\App\Support\Branding::class))
+<title>{{ $title ?? $branding->name() }}</title>
+@if ($branding->faviconUrl())
+    <link rel="icon" href="{{ $branding->faviconUrl() }}">
+    <link rel="apple-touch-icon" href="{{ $branding->faviconUrl() }}">
+@endif
 
 {{-- Apply the persisted (or system) theme before first paint, to avoid a
      light/dark flash. --}}

@@ -62,9 +62,10 @@ class ConfigController extends Controller
                 'currency' => $business->currency,
                 'timezone' => $business->timezone,
                 'logo_url' => $business->logo_url,
+                'favicon_url' => $business->favicon_url,
             ],
             // Trade-specific branding (colours, terminology, which modules
-            // to show) � the Universal POS dresses itself up per business
+            // to show) — the Universal POS dresses itself up per business
             // type. Null when the business has no type assigned.
             'business_type' => $business->businessType?->brandingPayload(),
             // The caller's OWN branch, permission-free — a Cashier is

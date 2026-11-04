@@ -8,6 +8,7 @@ use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -52,6 +53,41 @@ class AccountController extends Controller
         $user->fill($data);
         $user->save();
 
-        return ApiResponse::success($user->only(['id', 'name', 'email']), 'Profile updated successfully.');
+        return ApiResponse::success($user->only(['id', 'name', 'email']) + ['avatar_url' => $user->avatar_url], 'Profile updated successfully.');
+    }
+
+    /**
+     * Upload / replace the caller's profile photo (multipart field "avatar").
+     */
+    public function updateAvatar(Request $request): JsonResponse
+    {
+        $request->validate([
+            'avatar' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ]);
+
+        $user = $request->user();
+        $old = $user->avatar;
+
+        $user->avatar = $request->file('avatar')->store('avatars', 'public');
+        $user->save();
+
+        if ($old) {
+            Storage::disk('public')->delete($old);
+        }
+
+        return ApiResponse::success(['avatar_url' => $user->avatar_url], 'Profile photo updated.');
+    }
+
+    public function removeAvatar(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->avatar) {
+            Storage::disk('public')->delete($user->avatar);
+            $user->avatar = null;
+            $user->save();
+        }
+
+        return ApiResponse::success(['avatar_url' => null], 'Profile photo removed.');
     }
 }

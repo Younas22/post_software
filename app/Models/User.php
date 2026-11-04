@@ -4,12 +4,14 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -153,5 +155,14 @@ class User extends Authenticatable
         $businessIds = Business::query()->where('client_id', $this->client_id)->pluck('id');
 
         return $businessIds->count() === 1 ? $businessIds->first() : null;
+    }
+
+    /**
+     * Absolute public URL of the profile photo (or null) — not appended by
+     * default; API payloads add it explicitly.
+     */
+    protected function avatarUrl(): Attribute
+    {
+        return Attribute::get(fn () => $this->avatar ? Storage::disk('public')->url($this->avatar) : null);
     }
 }
