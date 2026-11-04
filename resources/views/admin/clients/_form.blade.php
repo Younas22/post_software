@@ -65,7 +65,7 @@
                 <x-select id="package_id" name="package_id">
                     <option value="">No package yet — assign later from the client's page</option>
                     @foreach ($packages ?? [] as $package)
-                        <option value="{{ $package->id }}" @selected(old('package_id') == $package->id)>{{ $package->name }} — ${{ $package->price }}/{{ $package->billing_cycle }}</option>
+                        <option value="{{ $package->id }}" @selected(old('package_id') == $package->id)>{{ $package->name }} — {{ app(\App\Support\PlatformCurrency::class)->format($package->price) }}/{{ $package->billing_cycle }}</option>
                     @endforeach
                 </x-select>
                 <x-input-error :messages="$errors->get('package_id')" />

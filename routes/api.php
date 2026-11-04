@@ -45,6 +45,11 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('health', fn () => ApiResponse::success(['status' => 'ok'], 'Service is healthy.'))->name('health');
 
+    // Public company profile & support contacts (login footer, Support page).
+    Route::get('public/platform', [BrandingController::class, 'platform'])
+        ->middleware('throttle:60,1')
+        ->name('public.platform');
+
     // Public branding for a business type's own login URL (/login/{slug}).
     Route::get('public/branding/{slug}', [BrandingController::class, 'show'])
         ->middleware('throttle:60,1')

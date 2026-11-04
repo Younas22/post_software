@@ -17,7 +17,7 @@
     </div>
 
     <div>
-        <x-label for="price" value="Price" />
+        <x-label for="price" :value="'Price ('.app(\App\Support\PlatformCurrency::class)->code().')'" />
         <x-input id="price" type="number" step="0.01" min="0" name="price" :value="old('price', $package->price ?? '0.00')" required />
         <x-input-error :messages="$errors->get('price')" />
     </div>

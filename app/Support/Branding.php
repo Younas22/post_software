@@ -47,6 +47,48 @@ class Branding
         return $this->get('support_phone') ?: null;
     }
 
+    public function supportWhatsapp(): ?string
+    {
+        return $this->get('support_whatsapp') ?: null;
+    }
+
+    public function liveChatUrl(): ?string
+    {
+        return $this->get('support_live_chat_url') ?: null;
+    }
+
+    public function supportHours(): ?string
+    {
+        return $this->get('support_hours') ?: null;
+    }
+
+    public function website(): ?string
+    {
+        return $this->get('company_website') ?: null;
+    }
+
+    /**
+     * Public company profile for the web app's login pages and Support
+     * page — only contact/branding data that is meant to be public.
+     *
+     * @return array<string, string|null>
+     */
+    public function toPublicArray(): array
+    {
+        return [
+            'name' => $this->name(),
+            'logo_url' => $this->logoUrl(),
+            'favicon_url' => $this->faviconUrl(),
+            'office_address' => $this->officeAddress(),
+            'support_email' => $this->supportEmail(),
+            'support_phone' => $this->supportPhone(),
+            'support_whatsapp' => $this->supportWhatsapp(),
+            'live_chat_url' => $this->liveChatUrl(),
+            'support_hours' => $this->supportHours(),
+            'website' => $this->website(),
+        ];
+    }
+
     public function initials(): string
     {
         $words = preg_split('/\s+/', trim($this->name())) ?: [];
@@ -60,7 +102,7 @@ class Branding
     {
         if ($this->values === null) {
             $this->values = [];
-            foreach (['app_name', 'app_logo', 'app_favicon', 'office_address', 'support_email', 'support_phone'] as $k) {
+            foreach (['app_name', 'app_logo', 'app_favicon', 'office_address', 'support_email', 'support_phone', 'support_whatsapp', 'support_live_chat_url', 'support_hours', 'company_website'] as $k) {
                 try {
                     $this->values[$k] = $this->settings->resolve($k);
                 } catch (\Throwable) {

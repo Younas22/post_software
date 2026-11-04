@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\DeviceActivationService;
 use App\Services\PackageLimitService;
 use App\Support\ApiResponse;
+use App\Support\PlatformCurrency;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -51,6 +52,8 @@ class SubscriptionController extends Controller
                 'name' => $package->name,
                 'slug' => $package->slug,
                 'price' => $package->price,
+                // Package prices are in the platform's default currency (Super Admin settings).
+                'currency' => app(PlatformCurrency::class)->code(),
                 'billing_cycle' => $package->billing_cycle,
                 'max_businesses' => $package->max_businesses,
                 'max_branches' => $package->max_branches,

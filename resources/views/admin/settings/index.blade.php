@@ -8,7 +8,7 @@
 
     @php
         $branding = app(\App\Support\Branding::class);
-        $brandingKeys = ['app_name', 'office_address', 'support_email', 'support_phone'];
+        $brandingKeys = ['app_name', 'office_address', 'support_email', 'support_phone', 'support_whatsapp', 'support_live_chat_url', 'support_hours', 'company_website'];
     @endphp
 
     <div class="space-y-6">
@@ -99,6 +99,31 @@
                     <x-label for="support_phone" value="Support phone" />
                     <x-input id="support_phone" name="support_phone" :value="old('support_phone', $values['support_phone'] ?? '')" />
                     <x-input-error :messages="$errors->get('support_phone')" />
+                </div>
+
+                <div>
+                    <x-label for="support_whatsapp" value="WhatsApp number" />
+                    <x-input id="support_whatsapp" name="support_whatsapp" :value="old('support_whatsapp', $values['support_whatsapp'] ?? '')" placeholder="e.g. +92 300 1234567" />
+                    <x-input-error :messages="$errors->get('support_whatsapp')" />
+                </div>
+
+                <div>
+                    <x-label for="support_hours" value="Support hours" />
+                    <x-input id="support_hours" name="support_hours" :value="old('support_hours', $values['support_hours'] ?? '')" placeholder="e.g. Mon-Sat, 10:00 AM - 7:00 PM" />
+                    <x-input-error :messages="$errors->get('support_hours')" />
+                </div>
+
+                <div>
+                    <x-label for="support_live_chat_url" value="Live chat link" />
+                    <x-input id="support_live_chat_url" name="support_live_chat_url" type="url" :value="old('support_live_chat_url', $values['support_live_chat_url'] ?? '')" placeholder="https://... (Tawk.to, Crisp, WhatsApp link...)" />
+                    <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">Leave empty until ready - the Support page shows live chat as "coming soon".</p>
+                    <x-input-error :messages="$errors->get('support_live_chat_url')" />
+                </div>
+
+                <div>
+                    <x-label for="company_website" value="Website" />
+                    <x-input id="company_website" name="company_website" type="url" :value="old('company_website', $values['company_website'] ?? '')" placeholder="https://yourcompany.com" />
+                    <x-input-error :messages="$errors->get('company_website')" />
                 </div>
 
                 <div class="sm:col-span-2">

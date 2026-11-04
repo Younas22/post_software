@@ -35,6 +35,11 @@ return [
     'supported_timezones' => ['type' => 'json', 'default' => ['UTC', 'Asia/Karachi', 'Asia/Dubai', 'Asia/Riyadh', 'Asia/Kolkata', 'Europe/London', 'America/New_York'], 'scopes' => ['system']],
     'support_email' => ['type' => 'string', 'default' => null, 'scopes' => ['system']],
     'support_phone' => ['type' => 'string', 'default' => null, 'scopes' => ['system']],
+    // Support page (web app) + login page contact block.
+    'support_whatsapp' => ['type' => 'string', 'default' => null, 'scopes' => ['system']],
+    'support_live_chat_url' => ['type' => 'string', 'default' => null, 'scopes' => ['system']],
+    'support_hours' => ['type' => 'string', 'default' => null, 'scopes' => ['system']],
+    'company_website' => ['type' => 'string', 'default' => null, 'scopes' => ['system']],
     'maintenance_mode' => ['type' => 'boolean', 'default' => false, 'scopes' => ['system']],
     'default_theme' => ['type' => 'string', 'default' => 'light', 'scopes' => ['system', 'client']],
 

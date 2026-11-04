@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -29,7 +30,7 @@ class ClientController extends Controller
 
         $clients = Client::query()
             ->withCount('businesses')
-            ->with('currentSubscription.package')
+            ->with(['currentSubscription.package', 'businesses.businessType:id,name', 'users' => fn ($q) => $q->with('roles:id,slug')])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
@@ -41,8 +42,25 @@ class ClientController extends Controller
             ->paginate(15)
             ->withQueryString();
 
+        // Login column: the client's owner account, and its password only when
+        // it is still the shared DEMO password (config app.demo_client_password).
+        // Real passwords are bcrypt-hashed and can never be shown; the check
+        // result is cached per password hash so the list stays fast.
+        $demoPassword = (string) config('app.demo_client_password');
+        $logins = $clients->getCollection()->mapWithKeys(function (Client $client) use ($demoPassword) {
+            $owner = $client->users->first(fn (User $u) => $u->roles->contains('slug', 'client-owner')) ?? $client->users->first();
+            $isDemo = $owner && $demoPassword !== '' && Cache::remember(
+                'client-login-demo:'.$owner->id.':'.md5($owner->password.$demoPassword),
+                now()->addDay(),
+                fn () => Hash::check($demoPassword, $owner->password),
+            );
+
+            return [$client->id => ['email' => $owner?->email, 'password' => $isDemo ? $demoPassword : null]];
+        });
+
         return view('admin.clients.index', [
             'clients' => $clients,
+            'logins' => $logins,
             'search' => $search,
             'status' => $status,
         ]);

@@ -6,7 +6,7 @@
                 <x-badge :variant="$package->status === 'active' ? 'success' : 'neutral'">{{ $package->status }}</x-badge>
             </div>
             <p class="text-sm text-neutral-500 dark:text-neutral-400">
-                ${{ number_format($package->price, 2) }} / {{ $package->billing_cycle }}
+                {{ app(\App\Support\PlatformCurrency::class)->format($package->price) }} / {{ $package->billing_cycle }}
             </p>
         </div>
 

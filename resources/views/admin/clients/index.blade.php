@@ -29,7 +29,8 @@
                     <tr>
                         <th class="px-4 py-3 font-medium">Name</th>
                         <th class="px-4 py-3 font-medium">Email</th>
-                        <th class="px-4 py-3 font-medium">Businesses</th>
+                        <th class="px-4 py-3 font-medium">Business (type)</th>
+                        <th class="px-4 py-3 font-medium">Login</th>
                         <th class="px-4 py-3 font-medium">Subscription</th>
                         <th class="px-4 py-3 font-medium">Status</th>
                         <th class="px-4 py-3 font-medium">Created</th>
@@ -40,7 +41,31 @@
                         <tr class="cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/50" onclick="window.location='{{ route('admin.clients.show', $client) }}'">
                             <td class="px-4 py-3 font-medium text-neutral-900 dark:text-white">{{ $client->name }}</td>
                             <td class="px-4 py-3 text-neutral-500 dark:text-neutral-400">{{ $client->email }}</td>
-                            <td class="px-4 py-3 text-neutral-500 dark:text-neutral-400">{{ $client->businesses_count }}</td>
+                            <td class="px-4 py-3 text-neutral-500 dark:text-neutral-400">
+                                @forelse ($client->businesses as $business)
+                                    <div class="whitespace-nowrap">
+                                        <span class="text-neutral-900 dark:text-white">{{ $business->name }}</span>
+                                        <span class="text-xs">({{ $business->businessType?->name ?? '—' }})</span>
+                                    </div>
+                                @empty
+                                    —
+                                @endforelse
+                            </td>
+                            <td class="px-4 py-3 text-xs" onclick="event.stopPropagation()">
+                                @php($login = $logins[$client->id] ?? null)
+                                @if ($login && $login['email'])
+                                    <div class="font-mono text-neutral-900 dark:text-white">{{ $login['email'] }}</div>
+                                    @if ($login['password'])
+                                        <div class="mt-0.5 font-mono text-neutral-500 dark:text-neutral-400">
+                                            Password: <span class="select-all font-semibold text-neutral-900 dark:text-white">{{ $login['password'] }}</span>
+                                        </div>
+                                    @else
+                                        <div class="mt-0.5 text-neutral-400 dark:text-neutral-500" title="Passwords are stored encrypted (hashed) and cannot be displayed.">Password: custom (hidden)</div>
+                                    @endif
+                                @else
+                                    <span class="text-neutral-400">No login user</span>
+                                @endif
+                            </td>
                             <td class="px-4 py-3 text-neutral-500 dark:text-neutral-400">{{ $client->currentSubscription?->package?->name ?? '—' }}</td>
                             <td class="px-4 py-3">
                                 <x-badge :variant="$client->status === 'active' ? 'success' : ($client->status === 'suspended' ? 'warning' : 'danger')">

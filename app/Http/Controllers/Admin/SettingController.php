@@ -61,6 +61,10 @@ class SettingController extends Controller
             'office_address' => ['sometimes', 'nullable', 'string', 'max:2000'],
             'support_email' => ['sometimes', 'nullable', 'email', 'max:255'],
             'support_phone' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'support_whatsapp' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'support_live_chat_url' => ['sometimes', 'nullable', 'url:https,http', 'max:500'],
+            'support_hours' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'company_website' => ['sometimes', 'nullable', 'url:https,http', 'max:255'],
             // Raster images only (no SVG — avoids SVG-borne XSS), same caps
             // as business logos.
             'app_logo' => ['sometimes', 'nullable', 'image', 'mimes:png,jpg,jpeg,webp,gif', 'max:2048', 'dimensions:max_width=4000,max_height=4000'],

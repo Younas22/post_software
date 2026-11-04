@@ -79,7 +79,7 @@
                     @method('PATCH')
                     <x-select name="package_id" required>
                         @foreach ($packages as $package)
-                            <option value="{{ $package->id }}" @selected($package->id === $subscription->package_id)>{{ $package->name }} (${{ number_format($package->price, 2) }})</option>
+                            <option value="{{ $package->id }}" @selected($package->id === $subscription->package_id)>{{ $package->name }} ({{ app(\App\Support\PlatformCurrency::class)->format($package->price) }})</option>
                         @endforeach
                     </x-select>
                     <x-input-error :messages="$errors->get('package_id')" />

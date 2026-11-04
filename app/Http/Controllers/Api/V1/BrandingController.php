@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\BusinessType;
 use App\Support\ApiResponse;
+use App\Support\Branding;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -16,6 +17,16 @@ use Illuminate\Http\JsonResponse;
  */
 class BrandingController extends Controller
 {
+    /**
+     * The platform company's public profile (name, logo, office, support
+     * contacts, live chat link) - for the login pages' footer and the
+     * in-app Support page. Set by the Super Admin in System Settings.
+     */
+    public function platform(Branding $branding): JsonResponse
+    {
+        return ApiResponse::success($branding->toPublicArray(), 'Platform information retrieved successfully.');
+    }
+
     public function show(string $slug): JsonResponse
     {
         $type = BusinessType::query()->where('slug', $slug)->where('is_active', true)->first();

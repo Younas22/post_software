@@ -20,7 +20,7 @@
                             <x-badge :variant="$package->status === 'active' ? 'success' : 'neutral'">{{ $package->status }}</x-badge>
                         </div>
                         <p class="mt-1 text-2xl font-semibold text-neutral-900 dark:text-white">
-                            ${{ number_format($package->price, 2) }}
+                            {{ app(\App\Support\PlatformCurrency::class)->format($package->price) }}
                             <span class="text-sm font-normal text-neutral-400 dark:text-neutral-600">/{{ $package->billing_cycle }}</span>
                         </p>
                         <dl class="mt-4 space-y-1.5 text-sm text-neutral-500 dark:text-neutral-400">
